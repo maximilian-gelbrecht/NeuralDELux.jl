@@ -7,10 +7,10 @@ using NODEData, Optimisers, Zygote, StatsBase, Random, Printf, JLD2
 
 Trains the `model` with parameters `ps` and state `st` with the `loss` function and `train_data` by applying a `opt_state` with the learning rate `η_schedule` for `N_epochs`. Returns the trained `model`, `ps`, `st`, `results`. An `additional_metric` with the signature `(model, ps, st) -> value` might be specified that is computed after every epoch.
 """
-function train_psn!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, shuffle_data_order=true, additional_metric=nothing)
+function train_psn!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing)
 
     best_ps = copy(ps)
-    results = (i_epoch = Int[], train_loss=Float64[], additional_loss=[], learning_rate=Float64[])
+    results = (i_epoch = Int[], train_loss=Float64[], additional_loss=[], learning_rate=Float64[], duration=Float64[], valid_loss=Float64[], test_loss=Float64[])
 
     for τ in τ_range 
 
@@ -45,18 +45,29 @@ function train_psn!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_
             end
 
             train_err = mean([loss(train_data[i], model, ps, st)[1] for i=1:NN_train])
-            
+            epoch_time = time() - epoch_start_time
+
             push!(results[:i_epoch], i_epoch)
             push!(results[:train_loss], train_err)
             push!(results[:learning_rate], η_schedule(i_epoch))
+            push!(results[:duration], epoch_time)
 
+            if !(isnothing(valid_data))
+                valid_err = mean([loss(valid_data_i, model, ps, st)[1] for valid_data_i in valid_data])
+                push!(results[:valid_loss], valid_err)
+            end 
+
+            if !(isnothing(test_data))
+                valid_err = mean([loss(test_data_i, model, ps, st)[1] for test_data_i in valid_data])
+                push!(results[:test_loss], test_err)
+            end 
+            
             if !(isnothing(additional_metric))
                 gf = additional_metric(model, ps, st)
                 push!(results[:additional_loss], gf)
             end 
 
             if verbose            
-                epoch_time = time() - epoch_start_time
                 @sprintf "...computing losses..."
                 @sprintf "epoch %04i - duration = %.1f  - learning rate = %.4e" i_epoch epoch_time η_schedule(i_epoch)
                 @sprintf "train loss: τ=%04i - loss=%.4e" τ train_err

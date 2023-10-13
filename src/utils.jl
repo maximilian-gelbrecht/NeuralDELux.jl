@@ -27,7 +27,7 @@ function (LL::ForecastLength)(model, ps, st)
     threshold = LL.threshold 
     modes = LL.modes 
 
-    model(LL.data, ps, st)
+    results = NamedTuple()
 
     if ("forecast_delta" in modes) || ("forecast_length" in modes)
 
@@ -54,6 +54,8 @@ function (LL::ForecastLength)(model, ps, st)
 
         results = (average_forecast_length=avg_forecast, results...,)
     end 
+
+    return results
 end 
 
 """
