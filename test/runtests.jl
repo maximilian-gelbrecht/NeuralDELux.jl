@@ -2,5 +2,6 @@ using NeuralDELux
 using Test
 
 @testset "NeuralDELux.jl" begin
-    # Write your tests here.
+    include("neuralde.jl")
+    include("solver.jl")
 end

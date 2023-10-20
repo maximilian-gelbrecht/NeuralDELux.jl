@@ -1,7 +1,7 @@
 import Pkg
 Pkg.activate("scripts") # change this to "." incase your "scripts" is already your working directory
 
-using Lux, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers
+using Lux, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, SciMLSensitivity
 
 using NeuralDELux, NODEData
 
@@ -81,7 +81,19 @@ forecast_length = NeuralDELux.ForecastLength(NODEData.get_trajectory(valid_batch
 TRAIN_BATCHED = true ##### ADD VALID ERROR TO TRAINING
 if TRAIN_BATCHED 
     println("starting training...")
-    neural_de, ps, st, results_ad = NeuralDELux.train_psn!(neural_de, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=500, verbose=false, valid_data=valid_batched)
+    neural_de, ps, st, results_ad = NeuralDELux.train_psn!(neural_de, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=250, verbose=false, valid_data=valid_batched)
+
+    println("Forecast Length Euler")
+    neural_de = NeuralDELux.NeuralDE(nn, alg=Euler(), dt=dt)
+    println(forecast_length(neural_de, ps, st))
+
+    println("Forecast Length Tsit")
+    neural_de = NeuralDELux.NeuralDE(nn, alg=Tsit5(), dt=dt)
+    println(forecast_length(neural_de, ps, st))
+
+    println("Continue training with Tsit...")
+    neural_de = NeuralDELux.NeuralDE(nn, alg=Tsit5(), dt=dt)
+    neural_de, ps, st, results_continue_tsit = NeuralDELux.train_psn!(neural_de, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=20, verbose=false, valid_data=valid_batched)
 
     println("Forecast Length Euler")
     neural_de = NeuralDELux.NeuralDE(nn, alg=Euler(), dt=dt)
@@ -97,7 +109,7 @@ if TRAIN_SINGLE
     println("starting training...")
 
     neural_de = NeuralDELux.NeuralDE(nn, alg=Euler(), dt=dt)
-    neural_de, ps_copy, st, results_euler = NeuralDELux.train_psn!(neural_de, ps_copy, st, loss, train, opt_state, η_schedule; τ_range=2:2, N_epochs=500, verbose=true, valid_data=valid)
+    neural_de, ps_copy, st, results_euler = NeuralDELux.train_psn!(neural_de, ps_copy, st, loss, train, opt_state, η_schedule; τ_range=2:2, N_epochs=250, verbose=true, valid_data=valid)
 
     println("Forecast Length Euler")
     neural_de = NeuralDELux.NeuralDE(nn, alg=Euler(), dt=dt)
@@ -113,7 +125,7 @@ if TRAIN_SINGLE_TSIT
     println("starting training Tsit...")
 
     neural_de = NeuralDELux.NeuralDE(nn, alg=Tsit5(), dt=dt)
-    neural_de, ps_copy_tsit, st, results_tsit = NeuralDELux.train_psn!(neural_de, ps_copy_tsit, st, loss, train, opt_state, η_schedule; τ_range=2:2, N_epochs=500, verbose=true)
+    neural_de, ps_copy_tsit, st, results_tsit = NeuralDELux.train_psn!(neural_de, ps_copy_tsit, st, loss, train, opt_state, η_schedule; τ_range=2:2, N_epochs=250, verbose=true)
 
     println("Forecast Length Euler")
     neural_de = NeuralDELux.NeuralDE(nn, alg=Euler(), dt=dt)
