@@ -7,7 +7,7 @@ using NODEData, Optimisers, Zygote, StatsBase, Random, Printf, JLD2
 
 Trains the `model` with parameters `ps` and state `st` with the `loss` function and `train_data` by applying a `opt_state` with the learning rate `η_schedule` for `N_epochs`. Returns the trained `model`, `ps`, `st`, `results`. An `additional_metric` with the signature `(model, ps, st) -> value` might be specified that is computed after every epoch.
 """
-function train_psn!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing)
+function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0)
 
     best_ps = copy(ps)
     results = (i_epoch = Int[], train_loss=Float64[], additional_loss=[], learning_rate=Float64[], duration=Float64[], valid_loss=Float64[], test_loss=Float64[])
@@ -25,7 +25,7 @@ function train_psn!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_
 
         for i_epoch in 1:N_epochs
 
-            Optimisers.adjust!(opt_state, η_schedule(i_epoch)) 
+            Optimisers.adjust!(opt_state, η_schedule(i_epoch + scheduler_offset)) 
 
             if verbose 
                 println("starting training epoch %i...", i_epoch)

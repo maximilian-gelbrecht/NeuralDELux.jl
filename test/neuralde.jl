@@ -12,7 +12,7 @@ using OrdinaryDiffEq, SciMLSensitivity, Lux, Optimisers, Zygote, ParameterSchedu
     train = (t,x)
 
     nn_model = Dense(2,2, use_bias=false)
-    node_model = NeuralDELux.NeuralDE(nn_model, gpu=false)
+    node_model = NeuralDELux.NeuralDE(nn_model, gpu=false, dt=0.05)
 
     rng = Random.default_rng()
     ps, st = Lux.setup(rng, node_model)
