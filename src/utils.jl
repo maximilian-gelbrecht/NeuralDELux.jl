@@ -1,4 +1,6 @@
-using EllipsisNotation
+using EllipsisNotation, StatsBase
+
+abstract type AbstractLossMetric end 
 
 """
     ForecastLength(data; threshold::Number=0.4, modes=("forecast_length",), metric="norm", N_avg::Int=30)
@@ -10,7 +12,7 @@ fl =  ForecastLength(data)
 res = fl(model, ps, st)
 ```
 """
-struct ForecastLength{D,TH,MO,ME,N} 
+struct ForecastLength{D,TH,MO,ME,N} <: AbstractLossMetric
     data::D 
     threshold::TH 
     modes::MO
@@ -95,3 +97,37 @@ function forecast_δ(prediction::AbstractArray, truth::AbstractArray, mode::Stri
     end
 end
 
+"""
+    AlternativeModelLoss(model, loss, data)
+
+Computes the mean `loss` with `model` on `data`. `data` is supposed to serve as an iterator. 
+"""
+@kwdef struct AlternativeModelLoss{M,L,D} <: AbstractLossMetric
+    model::M
+    loss::L
+    data::D
+end 
+
+(asl::AlternativeModelLoss)(model, ps, st) = mean([asl.loss(data_i, asl.model, ps, st)[1] for data_i in asl.data])
+
+"""
+    AlternativeModelLossSingleSample(model, loss, data)
+
+Computes the mean `loss` with `model` on `data`. `data` is supposed to serve as an iterator. `data` is assumed to be batched along the last dimension, but `model` only gets single samples as inputs.
+"""
+@kwdef struct AlternativeModelLossSingleSample{M,L,D} <: AbstractLossMetric
+    model::M
+    loss::L
+    data::D
+end 
+
+function (asl::AlternativeModelLossSingleSample)(model, ps, st) 
+    
+    mean = 0. 
+    for data_i in asl.data 
+        mean += mean([asl.loss((t[i,:],data_i[..,i]), asl.model, ps, st)[1] for i in axes(data_i,ndims(data_i[2]))])
+    end
+    mean /= length(asl.data)
+
+    return mean
+end 

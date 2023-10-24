@@ -46,4 +46,25 @@ end
     end
 
     @test isapprox(gs[1], gs2[1], rtol=1e-3)
+
+    function lorenz63(u,p,t)
+        X,Y,Z = u 
+        σ,r,b = p 
+    
+        return [-σ * X + σ * Y,
+        - X*Z + r*X - Y, 
+        X*Y - b*Z]
+    end 
+    
+    σ, r, b = 10., 28., 8/3.
+    p = [σ, r, b]
+    u0 = rand(3)
+    tspan = (0f0, 0.03f0)
+
+    prob = ODEProblem(lorenz63, u0, tspan, p)
+    
+    sol_tsit5 = solve(prob, RK4(), saveat=[0.03f0])
+    sol_adrk4 = solve(prob, NeuralDELux.ADRK4(), dt=0.03f0)
+
+    @test isapprox(Array(sol_tsit5),sol_adrk4[:,2], rtol=1e-3) 
 end
