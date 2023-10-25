@@ -155,7 +155,7 @@ if TRAIN_SINGLE_TSIT
     println("starting training Tsit...")
 
     neural_de = NeuralDELux.NeuralDE(nn, alg=Tsit5(), dt=dt)
-    neural_de, ps_copy_tsit, st, results_tsit = NeuralDELux.train!(neural_de, ps_copy_tsit, st, loss, train, opt_state, η_schedule; τ_range=2:2, N_epochs=50, verbose=true)
+    neural_de, ps_copy_tsit, st, results_tsit = NeuralDELux.train!(neural_de, ps_copy_tsit, st, loss, train, opt_state, η_schedule; τ_range=2:2, N_epochs=50, verbose=true, valid_data=valid)
 
     println("Forecast Length Euler")
     neural_de = NeuralDELux.NeuralDE(nn, alg=Euler(), dt=dt)

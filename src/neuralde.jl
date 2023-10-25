@@ -2,8 +2,9 @@ using SciMLBase, Lux
 basic_tgrad(u,p,t) = zero(u)
 
 """
+    SciMLNeuralDE(model; alg=ADEulerStep(), gpu=nothing, kwargs...)
 
-Model for setting up and training Chaotic Neural Differential Equations.
+Model for setting up and training Chaotic Neural Differential Equations with Lux.jl and SciMLSensitivity.jl
 
 # Fields:
 
@@ -13,17 +14,15 @@ Model for setting up and training Chaotic Neural Differential Equations.
 * `device` the device the model is running on, either `DeviceCPU` or `DeviceCUDA`, used for dispatiching if `Arrays` or `CuArrays` are used
 
 An instance of the model is called with a trajectory pair `(t,x)` in `t` are the timesteps that NDE is integrated for and `x` is a trajectory `N x ... x N_t` in which `x[:, ... , 1]` is taken as the initial condition. 
-
-Modelled after the ChaoticNDE implementation from `ChaoticNDETools.jl`, but adjusted for Lux with the help of the example from its manual.
 """
-struct NeuralDE{M,A,K,D} <: Lux.AbstractExplicitContainerLayer{(:model,)}
+struct SciMLNeuralDE{M,A,K,D} <: Lux.AbstractExplicitContainerLayer{(:model,)}
     model::M
     alg::A 
     kwargs::K 
     device::D
 end 
 
-function NeuralDE(model; alg=ADEulerStep(), gpu=nothing, kwargs...)
+function NeuralDE(model; alg=Tsit5(), gpu=nothing, kwargs...)
     device = DetermineDevice(gpu=gpu)
     NeuralDE{typeof(model), typeof(alg), typeof(kwargs), typeof(device)}(model, alg, kwargs, device)
 end
@@ -41,3 +40,34 @@ function (m::NeuralDE)(X, ps, st)
 
     DeviceArray(m.device, solve(prob, m.alg; saveat=t, m.kwargs...)), st
 end
+
+
+"""
+    ADNeuralDE(; model=model, alg=ADRK4Step(), dt=dt, kwargs...)
+
+Model for setting up and training Chaotic Neural Differential Equations with Lux.jl and NeuralDELux one-step solvers
+
+# Fields:
+
+* `prob` DEProblem 
+* `alg` Algorithm to use for the `solve` command 
+* `dt` time step 
+* `kwargs` any additonal keywords 
+
+An instance of the model is called with a trajectory pair `(t,x)` in `t` are the timesteps that NDE is integrated for and `x` is a trajectory `N x ... x N_t` in which `x[:, ... , 1]` is taken as the initial condition. 
+"""
+@kwdef struct ADNeuralDE{M,A,D,K} <: Lux.AbstractExplicitContainerLayer{(:model,)}
+    model::M
+    alg::A = ADRK4Step()
+    dt::D
+    kwargs::K = NamedTuple()
+end 
+
+function (m::ADNeuralDE)(x, ps, st)
+    solve(m.model, x, ps, st, m.alg, m.dt, m.kwargs...)
+end 
+
+function SciMLNeuralDE(m::ADNeuralDE, alg=Tsit5(); gpu=nothing)
+    device = DetermineDevice(gpu=gpu)
+    SciMLNeuralDE(m.model, alg, m.kwargs, device)
+end 
