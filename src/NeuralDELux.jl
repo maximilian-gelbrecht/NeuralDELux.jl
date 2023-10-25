@@ -6,6 +6,6 @@ include("solver.jl")
 include("training.jl")
 include("utils.jl")
 
-export NeuralDE, ADEulerStep, ADRK4
+export ADNeuralDE, SciMLNeuralDE, ADEulerStep, ADRK4Step
 
 end

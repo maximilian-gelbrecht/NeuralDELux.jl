@@ -22,12 +22,12 @@ struct SciMLNeuralDE{M,A,K,D} <: Lux.AbstractExplicitContainerLayer{(:model,)}
     device::D
 end 
 
-function NeuralDE(model; alg=Tsit5(), gpu=nothing, kwargs...)
+function SciMLNeuralDE(model; alg=Tsit5(), gpu=nothing, kwargs...)
     device = DetermineDevice(gpu=gpu)
-    NeuralDE{typeof(model), typeof(alg), typeof(kwargs), typeof(device)}(model, alg, kwargs, device)
+    SciMLNeuralDE{typeof(model), typeof(alg), typeof(kwargs), typeof(device)}(model, alg, kwargs, device)
 end
 
-function (m::NeuralDE)(X, ps, st)
+function (m::SciMLNeuralDE)(X, ps, st)
     (t, x) = X
     
     function rhs(u, p, t)

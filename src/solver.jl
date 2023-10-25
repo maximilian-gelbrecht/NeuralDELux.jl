@@ -12,7 +12,7 @@ It's is called with `solve(model, x, ps, st, solver::ADEulerStepTest, dt; kwargs
 struct ADEulerStep
 end 
 
-function solve(model, x, ps, st, solver::ADEulerStepTest, dt; kwargs...)
+function solve(model, x, ps, st, solver::ADEulerStep, dt; kwargs...)
     return @muladd x + dt .* model(x, ps, st)
 end 
 
@@ -35,8 +35,6 @@ end
     k₄,st = model(x + dt .* k₃, ps, st)
     return x + (dt/6) .* (k₁ + 2 .* (k₂ + k₃) + k₄), st
 end
-
-
 
 """
     SciMLEulerStep
