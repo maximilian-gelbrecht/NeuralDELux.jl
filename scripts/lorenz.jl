@@ -62,18 +62,8 @@ ps_copy = deepcopy(ps)
 ps_copy_rk = deepcopy(ps)
 ps_copy_tsit = deepcopy(ps)
 
-function loss(trajectory, model, ps, st) # loss function compatible with the AD Solver
-    (t, x) = trajectory
-    ŷ, st = model(selectdim(x,ndims(x),1), ps, st)
-    return sum(abs2, selectdim(x,ndims(x),2) - ŷ)
-end 
-
-function loss_sciml(x, model, ps, st) # loss function compatible with the SciML Solver
-    ŷ, st = model(x, ps, st)
-    return sum(abs2, x[2] - ŷ)
-end 
-
-loss_val = loss(train[1], neural_de, ps, st)
+loss = NeuralDELux.least_square_loss_ad
+loss_sciml = NeuralDELux.least_square_loss_sciml 
 
 opt = Optimisers.AdamW(1f-3, (9f-1, 9.99f-1), 1f-6)
 opt_state = Optimisers.setup(opt, ps)
@@ -84,9 +74,9 @@ valid_trajectory = NODEData.get_trajectory(valid_batched, 120; N_batch=N_batch)
 λ_max = 0.9056 # maximum LE of the L63
 
 forecast_length = NeuralDELux.ForecastLength(NODEData.get_trajectory(valid_batched, 120))
-valid_error_tsit = NeuralDELux.AlternativeModelLoss(data = valid, model = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=0.05), loss=loss)# asd
+valid_error_tsit = NeuralDELux.AlternativeModelLoss(data = valid, model = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=0.05), loss=loss_sciml)# asd
 
-TRAIN_BATCHED = true ##### ADD VALID ERROR TO TRAINING
+TRAIN_BATCHED = false ##### ADD VALID ERROR TO TRAINING
 if TRAIN_BATCHED 
     println("starting training...")
     neural_de = NeuralDELux.ADNeuralDE(model=nn, alg=ADEulerStep(), dt=dt)
@@ -113,10 +103,10 @@ if TRAIN_BATCHED
     println(forecast_length(neural_de, ps, st))
 end
 
-TRAIN_RK4 = true 
+TRAIN_RK4 = false 
 if TRAIN_RK4 
     println("starting training...")
-    neural_de = NeuralDELux.ADNeuralDE(nn, alg=ADRK4Step(), dt=dt)
+    neural_de = NeuralDELux.ADNeuralDE(model=nn, alg=ADRK4Step(), dt=dt)
     neural_de, ps_copy_rk, st, results_rk4 = NeuralDELux.train!(neural_de, ps_copy_rk, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=400, verbose=false, valid_data=valid_batched, additional_metric=valid_error_tsit)
 
     println("Forecast Length Euler")
@@ -144,7 +134,7 @@ TRAIN_SINGLE_TSIT = true
 if TRAIN_SINGLE_TSIT
     println("starting training Tsit...")
 
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt)
+    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), sensealg=InterpolatingAdjoint(autojacvec=ZygoteVJP(), checkpointing=true), dt=dt)
     neural_de, ps_copy_tsit, st, results_tsit = NeuralDELux.train!(neural_de, ps_copy_tsit, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:2, N_epochs=50, verbose=true, valid_data=valid)
 
     println("Forecast Length Euler")

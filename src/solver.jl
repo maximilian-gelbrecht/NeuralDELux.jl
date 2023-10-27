@@ -13,7 +13,7 @@ struct ADEulerStep
 end 
 
 function solve(model, x, ps, st, solver::ADEulerStep, dt; kwargs...)
-    return @muladd x + dt .* model(x, ps, st)
+    return @muladd x + dt .* model(x, ps, st)[1], st
 end 
 
 """
