@@ -42,7 +42,7 @@ end
 
 Integrated a longer trajectory from a (trained) single step solver. Not implemented for AD / training.
 """
-function trajectory(singlestep_solver, x, ps, st)
+function trajectory(singlestep_solver, X, ps, st)
     t, x = X 
 
     N_t = size(t, ndims(t))
