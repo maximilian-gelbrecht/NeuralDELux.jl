@@ -75,3 +75,12 @@ function solve(prob::AbstractDEProblem, solver::SciMLRK4Step; kwargs...)
 
     @muladd cat(u, u + (dt/6) .* (k₁ + 2 .* (k₂ + k₃) + f(u + dt .* k₃, p, t + dt)), dims=ndims(u)+1)
 end 
+
+struct MultiStepSolver{A}
+    N::Int
+    alg::A
+end
+
+function solve(model, x, ps, st, solver::MultiStepSolver, dt; kwargs...)
+    # difficult without mutation
+end

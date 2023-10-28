@@ -13,7 +13,7 @@ begin # set the hyperparameters
     N_t = 500 
     τ_max = 2 
     N_WEIGHTS = 16
-    dt = 0.005
+    dt = 0.01
     t_transient = 100.
     N_t_train = N_t
     N_t_valid = N_t_train*3
@@ -43,7 +43,7 @@ function lorenz96_2layer(y,p,t)
 end 
 
 begin # standard parameters of Lorenz' paper 
-    K = 36
+    K = 16
     J = 10 
     c = 10.
     b = 10. 
@@ -53,12 +53,32 @@ begin # standard parameters of Lorenz' paper
 
     N = K+K*J
     u0 = rand(Float32, N)
-    tspan = (100., 110.)
+    tspan = (100., 150.)
 
     prob = ODEProblem(lorenz96_2layer, u0, tspan, p)
     #prob = ODEProblem(lorenz96, u0, tspan, p)
 
     sol = solve(prob, Tsit5(), saveat=t_transient:dt:t_transient + N_t * dt)
+end
+
+struct HybridL96{T,M} <: Lux.AbstractExplicitContainerLayer{(:model, )}
+    model::M
+    F::T 
+end
+
+function (l::HybridL96)(x::AbstractMatrix, ps, st::NamedTuple)
+    model_out, st = l.model(x, ps, st)
+    return lorenz96_core(x) - x .+ l.F - model_out, st
+end
+
+struct HybridL96Augmented{T,M} <: Lux.AbstractExplicitContainerLayer{(:model, )}
+    model::M
+    F::T 
+end
+
+function (l::HybridL96Augmented)(x::AbstractMatrix, ps, st::NamedTuple)
+    model_out, st = l.model(x, ps, st) # change this
+    return lorenz96_core(x) - x .+ l.F - model_out, st
 end
 
 begin # scales are not right!, legend position, do a different scale for plotting
@@ -68,8 +88,8 @@ begin # scales are not right!, legend position, do a different scale for plottin
     t_plot = 100:0.1:110
     anim = @animate for it ∈ t_plot
         sol_i = sol(it)
-        plot(lons_1, sol_i[1:K], proj=:polar, ylims=[-5,5], title="Lorenz 96")
-        plot!(lons_2, sol_i[K+1:end], proj=:polar, title="Lorenz 96")
+        plot(lons_1, sol_i[1:K], proj=:polar, ylims=[-5,5], title="Layer 1")
+        plot!(lons_2, 10 .* sol_i[K+1:end], proj=:polar, title="10x Layer 2", legend=:outertopright)
 
     end 
     gif(anim, "l96.gif", fps=10)

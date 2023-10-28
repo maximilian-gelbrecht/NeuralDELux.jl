@@ -39,7 +39,8 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
             epoch_start_time = time()
 
             for data_index in data_order
-                loss_p(ps) = loss(train_data[data_index], model, ps, st)
+                data_i = train_data[data_index]
+                loss_p(ps) = loss(data_i, model, ps, st)
                 gs = Zygote.gradient(loss_p, ps)
                 opt_state, ps = Optimisers.update(opt_state, ps, gs[1])
             end
