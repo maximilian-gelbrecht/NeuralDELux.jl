@@ -1,6 +1,7 @@
 import SciMLBase: solve, AbstractDEProblem
 using MuladdMacro
 
+abstract type AbstractADSolverStep end
 
 """
     ADEulerStep
@@ -9,7 +10,7 @@ Does a single Euler step, does work with GPUs and AD (tested with Zygote)
 
 It's is called with `solve(model, x, ps, st, solver::ADEulerStepTest, dt; kwargs...)`
 """
-struct ADEulerStep
+struct ADEulerStep <: AbstractADSolverStep
 end 
 
 function solve(model, x, ps, st, solver::ADEulerStep, dt; kwargs...)
@@ -23,7 +24,7 @@ Does a single Runge Kutta 4th order step, does work with GPUs and AD (tested wit
 
 It's is called with `solve(model, x, ps, st, solver::ADEulerStepTest, dt; kwargs...)`
 """
-struct ADRK4Step
+struct ADRK4Step <: AbstractADSolverStep
 end
 
 @muladd function solve(model, x, ps, st, solver::ADRK4Step, dt; kwargs...)
@@ -35,6 +36,26 @@ end
     k₄,st = model(x + dt .* k₃, ps, st)
     return x + (dt/6) .* (k₁ + 2 .* (k₂ + k₃) + k₄), st
 end
+
+"""
+    trajectory(singlestep_solver, x, ps, st)
+
+Integrated a longer trajectory from a (trained) single step solver. Not implemented for AD / training.
+"""
+function trajectory(singlestep_solver, x, ps, st)
+    t, x = X 
+
+    N_t = size(t, ndims(t))
+    s = [size(x)...]
+    output = gpu(zeros(eltype(x), (s[1:end-1]..., N_t)))
+
+    output[..,1:1] = x[..,1:1]
+    for i_t in 2:N_t
+        output[..,i_t], st = singlestep_solver(output[..,i_t-1:i_t-1], ps, st)
+    end 
+
+    return output, st
+end 
 
 """
     SciMLEulerStep
