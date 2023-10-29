@@ -51,7 +51,7 @@ function trajectory(singlestep_solver, X, ps, st)
 
     output[..,1:1] = x[..,1:1]
     for i_t in 2:N_t
-        output[..,i_t], st = singlestep_solver(output[..,i_t-1:i_t-1], ps, st)
+        output[..,i_t], st = singlestep_solver(output[..,i_t-1], ps, st)
     end 
 
     return output, st
