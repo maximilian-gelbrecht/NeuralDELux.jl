@@ -10,7 +10,7 @@ Trains the `model` with parameters `ps` and state `st` with the `loss` function 
 function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0)
 
     best_ps = copy(ps)
-    results = (i_epoch = Int[], train_loss=Float64[], additional_loss=[], learning_rate=Float64[], duration=Float64[], valid_loss=Float64[], test_loss=Float64[])
+    results = (i_epoch = Int[], train_loss=Float64[], additional_loss=[], learning_rate=Float64[], duration=Float64[], valid_loss=Float64[], test_loss=Float64[], loss_min=Inf)
 
     for τ in τ_range 
 
@@ -81,6 +81,7 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
             if train_err < lowest_train_err
                 lowest_train_err = train_err 
                 best_ps = copy(ps)
+                results[:loss_min] = lowest_train_err
 
                 if !(isnothing(save_name))
                     ps_save = cpu(ps)
