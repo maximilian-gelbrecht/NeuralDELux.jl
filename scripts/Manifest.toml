@@ -2,7 +2,7 @@
 
 julia_version = "1.9.2"
 manifest_format = "2.0"
-project_hash = "05d42eb5df68889e9e0edeef1139def2e259b151"
+project_hash = "f189f506adc6d79421f601b996edb4c3a54eccdb"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "5d2e21d7b0d8c22f67483ef95ebdc39c0e6b6003"
@@ -1427,7 +1427,7 @@ version = "1.2.0"
 deps = ["Adapt", "CUDA", "EllipsisNotation", "JLD2", "Lux", "MuladdMacro", "NODEData", "Optimisers", "Printf", "Random", "SciMLBase", "StatsBase", "Zygote"]
 path = ".."
 uuid = "42edd903-6642-4dc2-93f6-9358071582bf"
-version = "1.1.1-DEV"
+version = "1.1.2-DEV"
 
 [[deps.NonlinearSolve]]
 deps = ["ADTypes", "ArrayInterface", "ConcreteStructs", "DiffEqBase", "EnumX", "FiniteDiff", "ForwardDiff", "LineSearches", "LinearAlgebra", "LinearSolve", "PrecompileTools", "RecursiveArrayTools", "Reexport", "SciMLBase", "SimpleNonlinearSolve", "SparseArrays", "SparseDiffTools", "StaticArraysCore", "UnPack"]

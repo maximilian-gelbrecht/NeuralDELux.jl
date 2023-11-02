@@ -131,3 +131,24 @@ function (asl::AlternativeModelLossSingleSample)(model, ps, st)
 
     return mean
 end 
+
+
+"""
+    slice_and_batch_trajectory(t::AbstractVector, x, N_batch::Integer)
+
+Slice a single trajectory into multiple ones for the batched dataloader.
+"""
+function slice_and_batch_trajectory(t::AbstractVector, x, N_batch::Integer)
+
+    @assert N_batch > 0
+    
+    N_t = length(t)
+    N_t_batch = div(N_t, N_batch)
+
+    trajs = []
+    for i=1:N_batch
+        push!(trajs, (t[1+(i-1)*N_t_batch:i*N_t_batch], x[..,1+(i-1)*N_t_batch:i*N_t_batch]))
+    end
+
+    return trajs
+end 

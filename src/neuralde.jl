@@ -22,7 +22,7 @@ struct SciMLNeuralDE{M,A,K,D} <: Lux.AbstractExplicitContainerLayer{(:model,)}
     device::D
 end 
 
-function SciMLNeuralDE(model; alg=Tsit5(), gpu=nothing, kwargs...)
+function SciMLNeuralDE(model; alg=NeuralDELux.SciMLRK4Step(), gpu=nothing, kwargs...)
     device = DetermineDevice(gpu=gpu)
     SciMLNeuralDE{typeof(model), typeof(alg), typeof(kwargs), typeof(device)}(model, alg, kwargs, device)
 end
@@ -71,3 +71,22 @@ function SciMLNeuralDE(m::ADNeuralDE, alg=Tsit5(); gpu=nothing)
     device = DetermineDevice(gpu=gpu)
     SciMLNeuralDE(m.model, alg, m.kwargs, device)
 end 
+
+"""
+    AugmentedNeuralDE(node_model::Union{ADNeuralDE, SciMLNeuralDE}, N_aug::Integer) 
+
+Construct an augmented NODE that wraps around an exisiting `node_model` and adds `N_aug` additional dimensions.
+"""
+struct AugmentedNeuralDE{M} <: Lux.AbstractExplicitContainerLayer{(:node,)}
+    node::M
+    N_aug::Int
+    i_aug::Int
+end
+
+function AugmentedNeuralDE(node_model::Union{ADNeuralDE, SciMLNeuralDE}, N_aug::Integer) 
+    i_aug =
+    AugmentedNeuralDE(node_model, N_aug, i_aug)
+end 
+
+(m::AugmentedNeuralDE)(x, ps, st) = m.node(x, ps, st)
+

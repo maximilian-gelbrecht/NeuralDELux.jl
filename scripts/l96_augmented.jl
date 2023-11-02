@@ -56,6 +56,16 @@ function (l::HybridL96)(x::AbstractMatrix, ps, st::NamedTuple)
     return lorenz96_core(x) - x .+ l.F - model_out, st
 end
 
+struct HybridL96Augmented{T,M} <: Lux.AbstractExplicitContainerLayer{(:model, )}
+    model::M
+    F::T 
+end
+
+function (l::HybridL96Augmented)(x::AbstractMatrix, ps, st::NamedTuple)
+    model_out, st = l.model(x, ps, st) # change this
+    return lorenz96_core(x) - x .+ l.F - model_out, st
+end
+
 begin # this will create the Dataloader from NODEData.jl that load small snippets of the trajectory
     t = sol.t
     sol = DeviceArray(device, sol)
