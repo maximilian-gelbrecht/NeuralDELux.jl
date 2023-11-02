@@ -152,3 +152,35 @@ function slice_and_batch_trajectory(t::AbstractVector, x, N_batch::Integer)
 
     return trajs
 end 
+
+"""
+    SamePadCircularConv(kernel, ch, activation=identity)
+
+Wrapper around `Lux.Conv` that adds circular padding so that the dimensions stay the same. 
+"""
+function SamePadCircularConv(kernel, ch, activation=identity)
+    @assert length(kernel) <= 3 "Kernel dim larger than 3 not supported"
+
+    if length(kernel) == 1
+        pad_dims = 1 
+    elseif length(kernel) == 2 
+        pad_dims = 1:2 
+    else 
+        pad_dims = 1:3
+    end 
+
+    Npad = []
+    for dim in pad_dims 
+        Np = kernel[dim] - 1
+        
+        if iseven(Np)
+            push!(Npad, Int(Np/2), Int(Np/2))
+        else 
+            push!(Npad, Int(ceil(Np/2)), Int(floor(Np/2)))
+        end
+    end 
+    
+    return CircularConv(kernel, ch, activation, N_pad=Tuple(Npad), pad_dims=pad_dims) 
+end 
+
+CircularConv(kernel, ch, activation=identity; N_pad=1, pad_dims=1) = Chain(WrappedFunction(x->NNlib.pad_circular(x, N_pad, dims=pad_dims)), Conv(kernel, ch, activation))

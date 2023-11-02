@@ -77,16 +77,23 @@ end
 
 Construct an augmented NODE that wraps around an exisiting `node_model` and adds `N_aug` additional dimensions.
 """
-struct AugmentedNeuralDE{M} <: Lux.AbstractExplicitContainerLayer{(:node,)}
+struct AugmentedNeuralDE{M,TU,D} <: Lux.AbstractExplicitContainerLayer{(:node,)}
     node::M
-    N_aug::Int
-    i_aug::Int
+    N_aug::TU
+    N_dim_model::TU
+    device::D
 end
 
-function AugmentedNeuralDE(node_model::Union{ADNeuralDE, SciMLNeuralDE}, N_aug::Integer) 
-    i_aug =
-    AugmentedNeuralDE(node_model, N_aug, i_aug)
-end 
+function AugmentedNeuralDE(node, N_aug, N_dim_model, cat_dim; gpu=nothing) 
+    
+    # test if the Augmented and Original is mergable 
+    
+    AugmentedNeuralDE(node, N_aug, N_dim_model, DetermineDevice(gpu=gpu))
+
+end
 
 (m::AugmentedNeuralDE)(x, ps, st) = m.node(x, ps, st)
 
+initial_condition(::Type{T}, m::AugmentedNeuralDE) where T = DeviceArray(m.device, zeros(T, m.N_aug))
+
+# write a custom cat for that 

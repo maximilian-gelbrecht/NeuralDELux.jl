@@ -30,4 +30,3 @@ function plot_l96_twolayer(sol, scale=10.)
     end 
     gif(anim, "l96.gif", fps=10)
 end
-

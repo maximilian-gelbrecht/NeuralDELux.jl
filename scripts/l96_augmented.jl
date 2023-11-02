@@ -80,7 +80,7 @@ rng = Random.default_rng()
 nn = Chain(WrappedFunction(x->reshape(x,:,1,1)),CircularConv((2,), 1=>N_channels, activation), CircularConv((2,), N_channels=>N_channels, activation),CircularConv((2,), N_channels=>N_channels, activation), CircularConv((2,), N_channels=>N_channels, activation),CircularConv((2,), N_channels=>1, activation), Conv((1,), 1=>1),WrappedFunction)
 neural_de = NeuralDELux.ADNeuralDE(model=nn, dt=dt, alg=ADRK4Step())
 
-ps, st = Lux.setup(rng, nn)
+ps, st = Lux.setup(rng, neural_de)
 ps = ComponentArray(ps) |> gpu
 
 loss = NeuralDELux.least_square_loss_ad
