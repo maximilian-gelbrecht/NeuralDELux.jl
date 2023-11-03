@@ -94,24 +94,8 @@ struct AugmentedNeuralDE{M,TU,D} <: Lux.AbstractExplicitContainerLayer{(:node,)}
             error("Original size array and augmented array are not cat-able.")
         end 
 
-        new{typeof(node),typeof(size_aug),typeof(size_orig),typeof(cat_dim)}(node, size_aug, size_orig, cat_dim)
+        new{typeof(node),typeof(size_aug),typeof(cat_dim)}(node, size_aug, size_orig, cat_dim)
     end 
-end
-
-function AugmentedNeuralDE(node, size_aug::Tuple, size_orig::Tuple, cat_dim; gpu=nothing) 
-    
-    test_aug = zeros(size_aug...)
-    test_orig = zeros(size_orig...)
-    
-    # test if the Augmented and Original is mergable 
-    try 
-        test_cat = cat(test_orig, test_aug, dims=cat_dim)
-    catch e 
-        error("Original size array and augmented array are not cat-able.")
-    end 
-
-    AugmentedNeuralDE(node, size_aug, size_orig, DetermineDevice(gpu=gpu))
-
 end
 
 (m::AugmentedNeuralDE)(x, ps, st) = m.node(x, ps, st)
