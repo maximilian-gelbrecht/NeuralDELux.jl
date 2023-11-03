@@ -79,21 +79,49 @@ Construct an augmented NODE that wraps around an exisiting `node_model` and adds
 """
 struct AugmentedNeuralDE{M,TU,D} <: Lux.AbstractExplicitContainerLayer{(:node,)}
     node::M
-    N_aug::TU
-    N_dim_model::TU
-    device::D
+    size_aug::TU
+    size_orig::TU
+    cat_dim::D
+
+    function AugmentedNeuralDE(node, size_aug::Tuple, size_orig::Tuple, cat_dim)
+        test_aug = zeros(size_aug...)
+        test_orig = zeros(size_orig...)
+        
+        # test if the Augmented and Original is mergable 
+        try 
+            test_cat = cat(test_orig, test_aug, dims=cat_dim)
+        catch e 
+            error("Original size array and augmented array are not cat-able.")
+        end 
+
+        new{typeof(node),typeof(size_aug),typeof(size_orig),typeof(cat_dim)}(node, size_aug, size_orig, cat_dim)
+    end 
 end
 
-function AugmentedNeuralDE(node, N_aug, N_dim_model, cat_dim; gpu=nothing) 
+function AugmentedNeuralDE(node, size_aug::Tuple, size_orig::Tuple, cat_dim; gpu=nothing) 
+    
+    test_aug = zeros(size_aug...)
+    test_orig = zeros(size_orig...)
     
     # test if the Augmented and Original is mergable 
-    
-    AugmentedNeuralDE(node, N_aug, N_dim_model, DetermineDevice(gpu=gpu))
+    try 
+        test_cat = cat(test_orig, test_aug, dims=cat_dim)
+    catch e 
+        error("Original size array and augmented array are not cat-able.")
+    end 
+
+    AugmentedNeuralDE(node, size_aug, size_orig, DetermineDevice(gpu=gpu))
 
 end
 
 (m::AugmentedNeuralDE)(x, ps, st) = m.node(x, ps, st)
 
-initial_condition(::Type{T}, m::AugmentedNeuralDE) where T = DeviceArray(m.device, zeros(T, m.N_aug))
+augment_state(m::AugmentedNeuralDE, state::T) where T = cat(state, T(zeros(m.size_aug...)), dims=m.cat_dim)
 
-# write a custom cat for that 
+function set_data!(m::AugmentedNeuralDE, state, data)
+    @assert size(data) == m.size_orig
+    state[size_to_index(m.size_orig)...] = data
+    return nothing
+end 
+
+size_to_index(size_tuple::Tuple) = [1:size_i for size_i in size_tuple]
