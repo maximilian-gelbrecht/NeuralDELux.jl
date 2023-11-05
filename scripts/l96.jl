@@ -1,7 +1,7 @@
 import Pkg
 Pkg.activate("scripts") # change this to "." incase your "scripts" is already your working directory
 
-using Lux, LuxCUDA, Plots, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, NNlib
+using Lux, LuxCUDA, Plots, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, NNlib, SciMLSensitivity
 
 using NeuralDELux, NODEData
 import NeuralDELux: DeviceArray, SamePadCircularConv
@@ -63,7 +63,6 @@ begin # this will create the Dataloader from NODEData.jl that load small snippet
     train, valid = NODEDataloader(sol, t, 2, valid_set=0.1)
     train_batched, valid_batched = NODEData.MultiTrajectoryBatchedNODEDataloader(NeuralDELux.slice_and_batch_trajectory(t, sol, N_batch), 2, valid_set=0.1) # there's something wrong here
 end
-
 
 rng = Random.default_rng()
 nn = Chain(WrappedFunction(x->reshape(x,:,1,N_batch)),SamePadCircularConv((2,), 1=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>1, activation), SamePadCircularConv((1,), 1=>1),WrappedFunction(x->view(x,:,1,:)))

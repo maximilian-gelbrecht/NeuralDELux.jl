@@ -124,19 +124,19 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
             if verbose 
                 println("starting training epoch %i...", i_epoch)
             end
-
-            data_order = 1:length(train_data)
     
             epoch_start_time = time()
 
-            augmented_dims = initial_condition(eltype(train_data[]), model)
-
-            for data_index in data_order
-                data_i = cat(train_data[data_index], augmented_dims) # cat data here 
+            state = augment_observable(m, train_data[1][2])
+            
+            for data_i in train_data
+                set_data!(model, state, data_i[2])
                 loss_p(ps) = loss(data_i, model, ps, st)
                 gs = Zygote.gradient(loss_p, ps)
                 opt_state, ps = Optimisers.update(opt_state, ps, gs[1])
+                
                 # run model once more here forward to get h
+                state, st = model(state, ps, st)
             end
 
             train_err = mean([loss(train_data[i], model, ps, st)[1] for i=1:NN_train])
@@ -179,7 +179,7 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
 
                 if !(isnothing(save_name))
                     ps_save = cpu(ps)
-                    @save save_name model ps_save
+                    @save save_name ps_save
                     @sprintf "model saved as %s" save_name
                 end 
             end

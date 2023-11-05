@@ -46,24 +46,18 @@ begin # standard parameters of Lorenz' paper
     sol = solve(prob, Tsit5(), saveat=t_transient:dt:t_transient + N_t * dt)
 end
 
-struct HybridL96{T,M} <: Lux.AbstractExplicitContainerLayer{(:model, )}
-    model::M
-    F::T 
-end
-
-function (l::HybridL96)(x::AbstractMatrix, ps, st::NamedTuple)
-    model_out, st = l.model(x, ps, st)
-    return lorenz96_core(x) - x .+ l.F - model_out, st
-end
-
 struct HybridL96Augmented{T,M} <: Lux.AbstractExplicitContainerLayer{(:model, )}
     model::M
     F::T 
+    N_obs::Integer
+    N_aug::Integer
 end
 
 function (l::HybridL96Augmented)(x::AbstractMatrix, ps, st::NamedTuple)
     model_out, st = l.model(x, ps, st) # change this
-    return lorenz96_core(x) - x .+ l.F - model_out, st
+    observables = view(x, 1:l.N_obs)
+
+    return vcat(lorenz96_core(observables) - observables .+ l.F, zeros(eltype(x), l.N_aug)) - model_out, st # change this here
 end
 
 begin # this will create the Dataloader from NODEData.jl that load small snippets of the trajectory
@@ -74,10 +68,8 @@ begin # this will create the Dataloader from NODEData.jl that load small snippet
     train_batched, valid_batched = NODEData.MultiTrajectoryBatchedNODEDataloader(NeuralDELux.slice_and_batch_trajectory(t, sol, N_batch), 2, valid_set=0.1) # there's something wrong here
 end
 
-CircularConv(kernel, ch, activation=identity, N_pad=1, pad_dims=1) = Chain(WrappedFunction(x->NNlib.pad_circular(x, N_pad, dims=pad_dims)), Conv(kernel, ch, activation))
-
 rng = Random.default_rng()
-nn = Chain(WrappedFunction(x->reshape(x,:,1,1)),CircularConv((2,), 1=>N_channels, activation), CircularConv((2,), N_channels=>N_channels, activation),CircularConv((2,), N_channels=>N_channels, activation), CircularConv((2,), N_channels=>N_channels, activation),CircularConv((2,), N_channels=>1, activation), Conv((1,), 1=>1),WrappedFunction)
+nn = Chain(WrappedFunction(x->reshape(x,:,1,N_batch)),SamePadCircularConv((2,), 1=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>1, activation), SamePadCircularConv((1,), 1=>1),WrappedFunction(x->view(x,:,1,:)))
 neural_de = NeuralDELux.ADNeuralDE(model=nn, dt=dt, alg=ADRK4Step())
 
 ps, st = Lux.setup(rng, neural_de)

@@ -100,7 +100,7 @@ end
 
 (m::AugmentedNeuralDE)(x, ps, st) = m.node(x, ps, st)
 
-augment_state(m::AugmentedNeuralDE, state::T) where T = cat(state, T(zeros(m.size_aug...)), dims=m.cat_dim)
+augment_observable(m::AugmentedNeuralDE, observable::T) where T = cat(observable, T(zeros(m.size_aug...)), dims=m.cat_dim)
 
 function set_data!(m::AugmentedNeuralDE, state, data)
     @assert size(data) == m.size_orig
