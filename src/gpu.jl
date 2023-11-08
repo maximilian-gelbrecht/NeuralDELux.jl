@@ -19,6 +19,16 @@ function DetermineDevice(; gpu::Union{Nothing, Bool}=nothing)
     return dev 
 end 
 
+function DetermineDevice(x::AbstractArray)
+    if typeof(x) <: CuArray
+        return DeviceCUDA()
+    elseif typeof(x) <: Array 
+        return DeviceCPU()
+    else
+        error("Can't determine Device based on input array ")
+    end 
+end 
+
 isgpu(::DeviceCUDA) = true 
 isgpu(::DeviceCPU) = false
 

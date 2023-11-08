@@ -44,14 +44,15 @@ Integrated a longer trajectory from a (trained) single step solver. Not implemen
 """
 function trajectory(singlestep_solver, X, ps, st)
     t, x = X 
+    dev = DetermineDevice(x)
 
     N_t = size(t, ndims(t))
     s = [size(x)...]
-    output = gpu(zeros(eltype(x), (s[1:end-1]..., N_t)))
+    output = DeviceArray(dev, zeros(eltype(x), (s[1:end-1]..., N_t)))
 
     output[..,1:1] = x[..,1:1]
     for i_t in 2:N_t
-        output[..,i_t], st = singlestep_solver(output[..,i_t-1], ps, st)
+        output[..,i_t:i_t], st = singlestep_solver(output[..,i_t-1], ps, st)
     end 
 
     return output, st
