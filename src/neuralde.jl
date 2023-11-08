@@ -77,11 +77,12 @@ end
 
 Construct an augmented NODE that wraps around an exisiting `node_model` and adds `N_aug` additional dimensions.
 """
-struct AugmentedNeuralDE{M,TU,D} <: Lux.AbstractExplicitContainerLayer{(:node,)}
+struct AugmentedNeuralDE{M,TA,TO,D,I} <: Lux.AbstractExplicitContainerLayer{(:node,)}
     node::M
-    size_aug::TU
-    size_orig::TU
+    size_aug::TA
+    size_orig::TO
     cat_dim::D
+    data_index::I
 
     function AugmentedNeuralDE(node, size_aug::Tuple, size_orig::Tuple, cat_dim)
         test_aug = zeros(size_aug...)
@@ -94,17 +95,21 @@ struct AugmentedNeuralDE{M,TU,D} <: Lux.AbstractExplicitContainerLayer{(:node,)}
             error("Original size array and augmented array are not cat-able.")
         end 
 
-        new{typeof(node),typeof(size_aug),typeof(cat_dim)}(node, size_aug, size_orig, cat_dim)
+        data_index = size_to_index(size_orig)
+        new{typeof(node), typeof(size_aug), typeof(size_orig), typeof(cat_dim), typeof(data_index)}(node, size_aug, size_orig, cat_dim, data_index)
     end 
 end
 
 (m::AugmentedNeuralDE)(x, ps, st) = m.node(x, ps, st)
 
-augment_observable(m::AugmentedNeuralDE, observable::T) where T = cat(observable, T(zeros(m.size_aug...)), dims=m.cat_dim)
+function augment_observable(m::AugmentedNeuralDE, observable::T) where T 
+    dev = DetermineDevice(observable)
+    cat(observable, DeviceArray(dev, zeros(m.size_aug...)), dims=m.cat_dim)
+end
 
 function set_data!(m::AugmentedNeuralDE, state, data)
     @assert size(data) == m.size_orig
-    state[size_to_index(m.size_orig)...] = data
+    state[m.data_index...] = data
     return nothing
 end 
 

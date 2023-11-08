@@ -127,19 +127,21 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
     
             epoch_start_time = time()
 
-            state = augment_observable(m, train_data[1][2])
-            
-            for data_i in train_data
+            state = augment_observable(model, train_data[1][2])
+            train_err = zeros(length(train_data))
+
+            for (i_data, data_i) in enumerate(train_data)
                 set_data!(model, state, data_i[2])
-                loss_p(ps) = loss(data_i, model, ps, st)
-                gs = Zygote.gradient(loss_p, ps)
+                loss_p(ps) = loss(state, model, ps, st)
+                lossval, gs = Zygote.withgradient(loss_p, ps)
                 opt_state, ps = Optimisers.update(opt_state, ps, gs[1])
                 
-                # run model once more here forward to get h
+                # run model once more here forward to get the new state
+                train_err[i_data] = lossval
                 state, st = model(state, ps, st)
             end
 
-            train_err = mean([loss(train_data[i], model, ps, st)[1] for i=1:NN_train])
+            train_err = mean(train_err)
             epoch_time = time() - epoch_start_time
 
             push!(results[:i_epoch], i_epoch)
@@ -150,11 +152,6 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
             if !(isnothing(valid_data))
                 valid_err = mean([loss(valid_data_i, model, ps, st)[1] for valid_data_i in valid_data])
                 push!(results[:valid_loss], valid_err)
-            end 
-
-            if !(isnothing(test_data))
-                valid_err = mean([loss(test_data_i, model, ps, st)[1] for test_data_i in valid_data])
-                push!(results[:test_loss], test_err)
             end 
             
             if !(isnothing(additional_metric))

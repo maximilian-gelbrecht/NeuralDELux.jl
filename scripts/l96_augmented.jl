@@ -4,7 +4,7 @@ Pkg.activate("scripts") # change this to "." incase your "scripts" is already yo
 using Lux, LuxCUDA, Plots, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, SciMLSensitivity, NNlib
 
 using NeuralDELux, NODEData
-import NeuralDELux: DeviceArray
+import NeuralDELux: DeviceArray, SamePadCircularConv
 
 Random.seed!(1234)
 const device = NeuralDELux.DetermineDevice()
@@ -23,6 +23,7 @@ begin # set the hyperparameters
     activation = relu
     N_batch = 10 
     N_channels = 10
+    N_channels_system = 4
 end 
 
 include("l96-tools.jl")
@@ -63,22 +64,27 @@ end
 begin # this will create the Dataloader from NODEData.jl that load small snippets of the trajectory
     t = sol.t
     sol = DeviceArray(device, sol)
+
+    observed_data = sol[1:K,:]
     
-    train, valid = NODEDataloader(sol, t, 2, valid_set=0.1)
-    train_batched, valid_batched = NODEData.MultiTrajectoryBatchedNODEDataloader(NeuralDELux.slice_and_batch_trajectory(t, sol, N_batch), 2, valid_set=0.1) # there's something wrong here
+    train, valid = NODEDataloader(observed_data, t, 2, valid_set=0.1)
+    train_batched, valid_batched = NODEData.MultiTrajectoryBatchedNODEDataloader(NeuralDELux.slice_and_batch_trajectory(t, observed_data, N_batch), 2, valid_set=0.1) # there's something wrong here
 end
 
 rng = Random.default_rng()
-nn = Chain(WrappedFunction(x->reshape(x,:,1,N_batch)),SamePadCircularConv((2,), 1=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>1, activation), SamePadCircularConv((1,), 1=>1),WrappedFunction(x->view(x,:,1,:)))
+nn = Chain(WrappedFunction(x->reshape(x,size(x,1),size(x,2),1)),SamePadCircularConv((2,), N_channels_system=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>N_channels_system, activation), SamePadCircularConv((1,), N_channels_system=>N_channels_system),WrappedFunction(x->view(x,:,:,1)))
 neural_de = NeuralDELux.ADNeuralDE(model=nn, dt=dt, alg=ADRK4Step())
+anode = NeuralDELux.AugmentedNeuralDE(neural_de, (K,N_batch,N_channels_system-1), (K,N_batch), 3)
 
 ps, st = Lux.setup(rng, neural_de)
 ps = ComponentArray(ps) |> gpu
 
-loss = NeuralDELux.least_square_loss_ad
-loss_sciml = NeuralDELux.least_square_loss_sciml 
-loss(train[1], neural_de, ps, st)
+loss = NeuralDELux.least_square_loss_anode
+#loss_sciml = NeuralDELux.least_square_loss_sciml 
 
+x0 = NeuralDELux.augment_observable(anode, train_batched[1][2][:,:,1]) # do it so that we directly have everything in N x N_c x N_b
+
+loss(x0, neural_de, ps, st)
 
 opt = Optimisers.AdamW(1f-3, (9f-1, 9.99f-1), 1f-6)
 opt_state = Optimisers.setup(opt, ps)
@@ -90,7 +96,7 @@ forecast_length = NeuralDELux.ForecastLength(NODEData.get_trajectory(valid_batch
 valid_error_tsit = NeuralDELux.AlternativeModelLoss(data = valid, model = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt), loss=loss_sciml)# asd
 
 
-TRAIN = true ##### ADD VALID ERROR TO TRAINING
+TRAIN = false ##### ADD VALID ERROR TO TRAINING
 if TRAIN 
     println("starting training...")
     neural_de = NeuralDELux.ADNeuralDE(model=nn, alg=ADEulerStep(), dt=dt)
