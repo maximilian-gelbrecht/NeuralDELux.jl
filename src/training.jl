@@ -127,12 +127,13 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
     
             epoch_start_time = time()
 
-            state = augment_observable(model, train_data[1][2])
+            state = augment_observable(model, train_data[1][2][..,1])
             train_err = zeros(length(train_data))
 
             for (i_data, data_i) in enumerate(train_data)
-                set_data!(model, state, data_i[2])
-                loss_p(ps) = loss(state, model, ps, st)
+                set_data!(model, state, data_i[2][..,1])
+                y = data_i[2][..,2]
+                loss_p(ps) = loss(state, y, model, ps, st)
                 lossval, gs = Zygote.withgradient(loss_p, ps)
                 opt_state, ps = Optimisers.update(opt_state, ps, gs[1])
                 

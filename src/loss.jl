@@ -18,7 +18,7 @@ function least_square_loss_sciml(x, model, ps, st) # loss function compatible wi
     return sum(abs2, x[2] - ŷ)
 end 
 
-function least_square_loss_anode(x, model, ps, st) # loss function compatible with the AD Solver
-    ŷ, st = model(selectdim(x,ndims(x),1), ps, st) # here a view is used, opposed to the ellipsisnotation 
-    return sum(abs2, x[model.data_index...,2] - ŷ[model.data_index...])
+function least_square_loss_anode(x, y, model, ps, st) # loss function compatible with the AD Solver
+    ŷ, st = model(x, ps, st) # here a view is used, opposed to the ellipsisnotation 
+    return sum(abs2, y - ŷ[model.data_index...])
 end 

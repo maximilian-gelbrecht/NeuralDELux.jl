@@ -84,7 +84,7 @@ loss = NeuralDELux.least_square_loss_anode
 
 x0 = NeuralDELux.augment_observable(anode, train_batched[1][2][:,:,1]) # do it so that we directly have everything in N x N_c x N_b
 
-loss(x0, neural_de, ps, st)
+loss(x0, train_batched[1][2][:,:,2], neural_de, ps, st)
 
 opt = Optimisers.AdamW(1f-3, (9f-1, 9.99f-1), 1f-6)
 opt_state = Optimisers.setup(opt, ps)
