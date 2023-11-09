@@ -1,7 +1,7 @@
 import Pkg
 Pkg.activate("scripts") # change this to "." incase your "scripts" is already your working directory
 
-using Lux, LuxCUDA, Plots, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, NNlib, SciMLSensitivity
+using Lux, LuxCUDA, Plots, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, NNlib, SciMLSensitivity, JLD2
 
 using NeuralDELux, NODEData
 import NeuralDELux: DeviceArray, SamePadCircularConv
