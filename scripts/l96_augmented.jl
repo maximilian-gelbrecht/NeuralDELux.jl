@@ -1,7 +1,7 @@
 import Pkg
 Pkg.activate("scripts") # change this to "." incase your "scripts" is already your working directory
 
-using Lux, LuxCUDA, Plots, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, SciMLSensitivity, NNlib
+using Lux, LuxCUDA, Plots, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, SciMLSensitivity, NNlib, JLD2
 
 using NeuralDELux, NODEData
 import NeuralDELux: DeviceArray, SamePadCircularConv
@@ -83,6 +83,7 @@ loss = NeuralDELux.least_square_loss_anode
 #loss_sciml = NeuralDELux.least_square_loss_sciml 
 
 x0 = NeuralDELux.augment_observable(anode, train_batched[1][2][:,:,1]) # do it so that we directly have everything in N x N_c x N_b
+
 
 loss(x0, train_batched[1][2][:,:,2], neural_de, ps, st)
 
