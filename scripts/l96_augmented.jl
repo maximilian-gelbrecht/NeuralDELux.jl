@@ -1,7 +1,7 @@
 import Pkg
 Pkg.activate("scripts") # change this to "." incase your "scripts" is already your working directory
 
-using Lux, LuxCUDA, Plots, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, SciMLSensitivity, NNlib, JLD2
+using Lux, LuxCUDA, Plots, EllipsisNotation, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, SciMLSensitivity, NNlib, JLD2
 
 using NeuralDELux, NODEData
 import NeuralDELux: DeviceArray, SamePadCircularConv
@@ -15,7 +15,7 @@ begin # set the hyperparameters
     N_t = 500 
     τ_max = 2 
     N_WEIGHTS = 16
-    dt = 0.01
+    dt = 0.01f0
     t_transient = 100.
     N_t_train = N_t
     N_t_valid = N_t_train*3
@@ -31,15 +31,15 @@ include("l96-tools.jl")
 begin # standard parameters of Lorenz' paper 
     K = 16
     J = 10 
-    c = 10.
-    b = 10. 
-    h = 1. 
-    F = 10.
+    c = 10f0
+    b = 10f0
+    h = 1f0
+    F = 10f0
     p = F, h, c, b, K, J 
 
     N = K+K*J
     u0 = DeviceArray(device, rand(Float32, N))
-    tspan = (100., 200.)
+    tspan = (100f0, 200f0)
 
     prob = ODEProblem(lorenz96_2layer, u0, tspan, p)
     #prob = ODEProblem(lorenz96, u0, tspan, p)
@@ -65,27 +65,27 @@ begin # this will create the Dataloader from NODEData.jl that load small snippet
     t = sol.t
     sol = DeviceArray(device, sol)
 
-    observed_data = sol[1:K,:]
+    observed_data = reshape(sol[1:K,:], K,1,:)
     
     train, valid = NODEDataloader(observed_data, t, 2, valid_set=0.1)
     train_batched, valid_batched = NODEData.MultiTrajectoryBatchedNODEDataloader(NeuralDELux.slice_and_batch_trajectory(t, observed_data, N_batch), 2, valid_set=0.1) # there's something wrong here
 end
 
 rng = Random.default_rng()
-nn = Chain(WrappedFunction(x->reshape(x,size(x,1),size(x,2),1)),SamePadCircularConv((2,), N_channels_system=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>N_channels_system, activation), SamePadCircularConv((1,), N_channels_system=>N_channels_system),WrappedFunction(x->view(x,:,:,1)))
+nn = Chain(SamePadCircularConv((2,), N_channels_system=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>N_channels_system, activation), SamePadCircularConv((1,), N_channels_system=>N_channels_system))
 neural_de = NeuralDELux.ADNeuralDE(model=nn, dt=dt, alg=ADRK4Step())
-anode = NeuralDELux.AugmentedNeuralDE(neural_de, (K,N_batch,N_channels_system-1), (K,N_batch), 3)
+anode = NeuralDELux.AugmentedNeuralDE(neural_de, (K, N_channels_system-1, N_batch), (K, 1, N_batch), 2)
 
-ps, st = Lux.setup(rng, neural_de)
+ps, st = Lux.setup(rng, anode)
 ps = ComponentArray(ps) |> gpu
 
 loss = NeuralDELux.least_square_loss_anode
 #loss_sciml = NeuralDELux.least_square_loss_sciml 
 
-x0 = NeuralDELux.augment_observable(anode, train_batched[1][2][:,:,1]) # do it so that we directly have everything in N x N_c x N_b
+x0 = NeuralDELux.augment_observable(anode, train_batched[1][2][..,1]) # do it so that we directly have everything in N x N_c x N_b
 
 
-loss(x0, train_batched[1][2][:,:,2], neural_de, ps, st)
+loss(x0, train_batched[1][2][..,2], anode, ps, st)
 
 opt = Optimisers.AdamW(1f-3, (9f-1, 9.99f-1), 1f-6)
 opt_state = Optimisers.setup(opt, ps)

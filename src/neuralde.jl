@@ -102,9 +102,9 @@ end
 
 (m::AugmentedNeuralDE)(x, ps, st) = m.node(x, ps, st)
 
-function augment_observable(m::AugmentedNeuralDE, observable::T) where T 
+function augment_observable(m::AugmentedNeuralDE, observable::AbstractArray{T}) where T 
     dev = DetermineDevice(observable)
-    cat(observable, DeviceArray(dev, zeros(m.size_aug...)), dims=m.cat_dim)
+    cat(observable, DeviceArray(dev, zeros(T,m.size_aug...)), dims=m.cat_dim)
 end
 
 function set_data!(m::AugmentedNeuralDE, state, data)
