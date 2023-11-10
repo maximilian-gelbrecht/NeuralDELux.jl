@@ -8,7 +8,10 @@ using NeuralDELux, NODEData
 Random.seed!(1234)
 
 begin # set the hyperparameters
-    SAVE_NAME = "local-test"
+    SAVE_NAME = "l63-node-test"
+    SAVE_NAME_MODEL = string(SAVE_NAME, "-model.jld2")
+    SAVE_NAME_RESULTS = string(SAVE_NAME, "-results.jld2")
+
     N_epochs = 50 
     N_t = 500 
     τ_max = 2 
@@ -57,11 +60,6 @@ neural_de = NeuralDELux.ADNeuralDE(model=nn, dt=dt, alg=ADRK4Step())
 ps, st = Lux.setup(rng, neural_de)
 ps = ComponentArray(ps) |> gpu
 
-# we want all experiments to start from the same parameter set to compare them, so we copy them 
-ps_copy = deepcopy(ps)
-ps_copy_rk = deepcopy(ps)
-ps_copy_tsit = deepcopy(ps)
-
 loss = NeuralDELux.least_square_loss_ad
 loss_sciml = NeuralDELux.least_square_loss_sciml 
 
@@ -71,80 +69,39 @@ opt_state = Optimisers.setup(opt, ps)
 
 valid_trajectory = NODEData.get_trajectory(valid_batched, 120; N_batch=N_batch)
 
-λ_max = 0.9056 # maximum LE of the L63
-
 forecast_length = NeuralDELux.ForecastLength(NODEData.get_trajectory(valid_batched, 120))
 valid_error_tsit = NeuralDELux.AlternativeModelLoss(data = valid, model = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=0.05), loss=loss_sciml)# asd
 
-TRAIN_BATCHED = false ##### ADD VALID ERROR TO TRAINING
-if TRAIN_BATCHED 
-    println("starting training...")
-    neural_de = NeuralDELux.ADNeuralDE(model=nn, alg=ADEulerStep(), dt=dt)
-    neural_de, ps, st, results_ad = NeuralDELux.train!(neural_de, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=400, verbose=false, additional_metric=valid_error_tsit)
-
-    println("Forecast Length Euler")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Euler(), dt=dt)
-    println(forecast_length(neural_de, ps, st))
+TRAIN = true 
+if TRAIN
+    println("starting training with AD RK4...")
+    neural_de = NeuralDELux.ADNeuralDE(model=nn, alg=ADRK4Step(), dt=dt)
+    neural_de, ps, st, results_ad = NeuralDELux.train!(neural_de, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=200, verbose=false, additional_metric=valid_error_tsit, save_name=SAVE_NAME_MODEL)
 
     println("Forecast Length Tsit")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt)
+    neural_de = NeuralDELux.SciMLNeuralDE(model=nn, alg=Tsit5(), dt=dt)
     println(forecast_length(neural_de, ps, st))
 
-    println("Continue training with Tsit...")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt)
-    neural_de, ps, st, results_continue_tsit = NeuralDELux.train!(neural_de, ps, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:2, N_epochs=20, verbose=false, valid_data=valid, scheduler_offset=250)
-
-    println("Forecast Length Euler")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Euler(), dt=dt)
-    println(forecast_length(neural_de, ps, st))
+    println("Continue training with Tsit batched...")
+    neural_de = NeuralDELux.SciMLNeuralDE(model=nn, alg=Tsit5(), dt=dt)
+    neural_de, ps, st, results_sciml_batched = NeuralDELux.train!(neural_de, ps, st, loss_sciml, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=20, verbose=false, valid_data=valid_batched, scheduler_offset=200, save_name=SAVE_NAME_MODEL)
  
     println("Forecast Length Tsit")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt)
+    neural_de = NeuralDELux.SciMLNeuralDE(model=nn, alg=Tsit5(), dt=dt)
     println(forecast_length(neural_de, ps, st))
+
+    println("Continue training with Tsit single...")
+    neural_de = NeuralDELux.SciMLNeuralDE(model=nn, alg=Tsit5(), dt=dt)
+    neural_de, ps, st, results_sciml_single = NeuralDELux.train!(neural_de, ps, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:2, N_epochs=20, verbose=false, valid_data=valid, scheduler_offset=220, save_name=SAVE_NAME_MODEL)
+ 
+    println("Forecast Length Tsit")
+    neural_de = NeuralDELux.SciMLNeuralDE(model=nn, alg=Tsit5(), dt=dt)
+    println(forecast_length(neural_de, ps, st))
+
+    @save SAVE_NAME_RESULTS results_ad results_sciml_batched results_sciml_single
+
 end
 
-TRAIN_RK4 = false 
-if TRAIN_RK4 
-    println("starting training...")
-    neural_de = NeuralDELux.ADNeuralDE(model=nn, alg=ADRK4Step(), dt=dt)
-    neural_de, ps_copy_rk, st, results_rk4 = NeuralDELux.train!(neural_de, ps_copy_rk, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=400, verbose=false, valid_data=valid_batched, additional_metric=valid_error_tsit)
-
-    println("Forecast Length Euler")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Euler(), dt=dt)
-    println(forecast_length(neural_de, ps, st))
-
-    println("Forecast Length Tsit")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt)
-    println(forecast_length(neural_de, ps, st))
-
-    println("Continue training with Tsit...")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt)
-    neural_de, ps_copy_rk, st, results_continue_tsit_rk4 = NeuralDELux.train!(neural_de, ps_copy_rk, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:2, N_epochs=20, verbose=false, valid_data=valid, scheduler_offset=250)
-
-    println("Forecast Length Euler")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Euler(), dt=dt)
-    println(forecast_length(neural_de, ps, st))
-
-    println("Forecast Length Tsit")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt)
-    println(forecast_length(neural_de, ps, st))
-end
-
-TRAIN_SINGLE_TSIT = true 
-if TRAIN_SINGLE_TSIT
-    println("starting training Tsit...")
-
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), sensealg=InterpolatingAdjoint(autojacvec=ZygoteVJP(), checkpointing=true), dt=dt)
-    neural_de, ps_copy_tsit, st, results_tsit = NeuralDELux.train!(neural_de, ps_copy_tsit, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:2, N_epochs=50, verbose=true, valid_data=valid)
-
-    println("Forecast Length Euler")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Euler(), dt=dt)
-    println(forecast_length(neural_de, ps, st))
-
-    println("Forecast Length Tsit")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt)
-    println(forecast_length(neural_de, ps, st))
-end 
 
 PLOT = false
 if PLOT 

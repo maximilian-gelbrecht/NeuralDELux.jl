@@ -72,7 +72,7 @@ nn = Chain(WrappedFunction(x->reshape(x,:,1,size(x,2))),SamePadCircularConv((2,)
 nn_single = Chain(WrappedFunction(x->reshape(x,:,1,1)),nn[2:end-1],WrappedFunction(x->view(x,:,1,1)))
 
 neural_de = NeuralDELux.ADNeuralDE(model=nn, dt=dt, alg=ADRK4Step())
-neural_de_single = NeuralDELux.SciMLNeuralDE(nn_single, dt=dt, alg=Tsit5())
+neural_de_sciml_single = NeuralDELux.SciMLNeuralDE(model=nn_single, alg=Tsit5(), dt=dt)
 
 nn_single = Chain
 
@@ -82,7 +82,6 @@ ps = ComponentArray(ps) |> gpu
 loss = NeuralDELux.least_square_loss_ad
 loss_sciml = NeuralDELux.least_square_loss_sciml 
 loss(train_batched[1], neural_de, ps, st)
-loss_sciml(train[1], neural_de_single, ps, st)
 
 opt = Optimisers.AdamW(1f-3, (9f-1, 9.99f-1), 1f-6)
 opt_state = Optimisers.setup(opt, ps)
@@ -91,18 +90,26 @@ opt_state = Optimisers.setup(opt, ps)
 valid_trajectory = NODEData.get_trajectory(valid_batched, 20)
 
 forecast_length = NeuralDELux.ForecastLength(NODEData.get_trajectory(valid, 20))
-valid_error_tsit = NeuralDELux.AlternativeModelLoss(data=valid, model=neural_de_single, loss=loss_sciml)
+valid_error_tsit = NeuralDELux.AlternativeModelLoss(data=valid, model=neural_de_sciml_single, loss=loss_sciml)
 
 TRAIN = true ##### ADD VALID ERROR TO TRAINING
 if TRAIN 
     println("starting training...")
-    neural_de, ps, st, results_ad = NeuralDELux.train!(neural_de, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=300, verbose=false, additional_metric=valid_error_tsit, save_name=SAVE_NAME)
+    neural_de, ps, st, results_ad = NeuralDELux.train!(neural_de, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=false, additional_metric=valid_error_tsit, save_name=SAVE_NAME_MODEL)
 
     println("Forecast Length Tsit")
     println(forecast_length(neural_de_single, ps, st))
 
-    println("Continue training with Tsit...")
-    neural_de, ps, st, results_continue_tsit = NeuralDELux.train!(neural_de_single, ps, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:2, N_epochs=20, verbose=false, valid_data=valid, scheduler_offset=250, save_name=SAVE_NAME)
+    println("Continue training with Tsit batched...")
+    neural_de = NeuralDELux.SciMLNeuralDE(model=nn, alg=Tsit5(), dt=dt)
+    neural_de, ps, st, results_sciml_batched = NeuralDELux.train!(neural_de, ps, st, loss_sciml, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=false, valid_data=valid_batched, scheduler_offset=200, save_name=SAVE_NAME_MODEL)
+ 
+    println("Forecast Length Tsit")
+    println(forecast_length(neural_de_single, ps, st))
+
+    println("Continue training with Tsit single...")
+    neural_de = NeuralDELux.SciMLNeuralDE(model=nn_single, alg=Tsit5(), dt=dt)
+    neural_de, ps, st, results_sciml_single = NeuralDELux.train!(neural_de, ps, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=false, valid_data=valid, scheduler_offset=220, save_name=SAVE_NAME_MODEL)
  
     println("Forecast Length Tsit")
     println(forecast_length(neural_de_single, ps, st))

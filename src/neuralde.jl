@@ -41,9 +41,13 @@ function (m::SciMLNeuralDE)(X, ps, st)
         r, st = m.model(u, p, st)
         return r 
     end 
+
+    if ndims(t)==2 # for batched use with NODEData.jl
+        t = t[1,:]
+    end
     
     nn_ff = ODEFunction{false}(rhs, tgrad=basic_tgrad)
-    prob = ODEProblem{false}(nn_ff, DeviceArray(m.device, selectdim(x, ndims(x),1)), (t[1],t[end]), ps)
+    prob = ODEProblem{false}(nn_ff, x[..,1], (t[1],t[end]), ps)
 
     DeviceArray(m.device, solve(prob, m.alg; saveat=t, m.kwargs...)), st
 end
@@ -80,9 +84,9 @@ function SciMLNeuralDE(m::ADNeuralDE, alg=Tsit5(); gpu=nothing)
 end 
 
 """
-    AugmentedNeuralDE(node_model::Union{ADNeuralDE, SciMLNeuralDE}, N_aug::Integer) 
+    AugmentedNeuralDE(node_model::Union{ADNeuralDE, SciMLNeuralDE}, size_aug::Tuple, size_orig::Tuple, cat_dim) 
 
-Construct an augmented NODE that wraps around an exisiting `node_model` and adds `N_aug` additional dimensions.
+Construct an augmented NODE that wraps around an exisiting `node_model` with observales with size `size_orig` and adds `size_aug` additional dimensions along dimension `cat_dim`.
 """
 struct AugmentedNeuralDE{M,TA,TO,D,I} <: Lux.AbstractExplicitContainerLayer{(:node,)}
     node::M
@@ -95,7 +99,7 @@ struct AugmentedNeuralDE{M,TA,TO,D,I} <: Lux.AbstractExplicitContainerLayer{(:no
         test_aug = zeros(size_aug...)
         test_orig = zeros(size_orig...)
         
-        # test if the Augmented and Original is mergable 
+        # test if the Augmented and observable is mergable 
         try 
             test_cat = cat(test_orig, test_aug, dims=cat_dim)
         catch e 
