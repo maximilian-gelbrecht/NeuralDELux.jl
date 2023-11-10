@@ -142,6 +142,8 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
                 state, st = model(state, ps, st)
             end
 
+            final_state = copy(state)
+
             train_err = mean(train_err)
             epoch_time = time() - epoch_start_time
 
@@ -151,7 +153,17 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
             push!(results[:duration], epoch_time)
 
             if !(isnothing(valid_data))
-                valid_err = mean([loss(valid_data_i, model, ps, st)[1] for valid_data_i in valid_data])
+
+                valid_err = zeros(length(train_data))
+
+                for  (i_data, data_i) in enumerate(valid_data)
+                    set_data!(model, state, data_i[2][..,1])
+                    y = data_i[2][..,2]
+                    valid_err[i_data] = loss(state, y, model, ps, st)
+                    state, st = model(state, ps, st)
+                end
+
+                valid_err = mean(valid_err)
                 push!(results[:valid_loss], valid_err)
             end 
             
@@ -184,5 +196,5 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
         end 
     end
 
-    return model, best_ps, st, results
+    return model, best_ps, st, results, final_state
 end 

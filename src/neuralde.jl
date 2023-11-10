@@ -125,3 +125,4 @@ function set_data!(m::AugmentedNeuralDE, state, data)
 end 
 
 size_to_index(size_tuple::Tuple) = [1:size_i for size_i in size_tuple]
+

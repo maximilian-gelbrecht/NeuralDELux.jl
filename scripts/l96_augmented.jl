@@ -94,16 +94,15 @@ opt_state = Optimisers.setup(opt, ps)
 valid_trajectory = NODEData.get_trajectory(valid_batched, 20)
 
 forecast_length = NeuralDELux.ForecastLength(NODEData.get_trajectory(valid_batched, 20))
-#valid_error_tsit = NeuralDELux.AlternativeModelLoss(data = valid, model = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt), loss=loss_sciml)# asd
 
 
 TRAIN = true ##### ADD VALID ERROR TO TRAINING
 if TRAIN 
     println("starting training...")
-    neural_de, ps, st, results_ad = NeuralDELux.train_anode!(anode, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=false, save_name=SAVE_NAME)
+    neural_de, ps, st, results_ad = NeuralDELux.train_anode!(anode, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=false, valid_data=valid_batched, save_name=SAVE_NAME)
 
     println("Forecast Length Tsit")
-    println(forecast_length(neural_de_single, ps, st))
+    #println(forecast_length(neural_de_single, ps, st))
 
     println("Continue training with Tsit...")
     #neural_de, ps, st, results_continue_tsit = NeuralDELux.train!(neural_de_single, ps, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:2, N_epochs=20, verbose=false, valid_data=valid, scheduler_offset=250, save_name=SAVE_NAME)
