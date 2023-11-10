@@ -27,6 +27,13 @@ function SciMLNeuralDE(model; alg=NeuralDELux.SciMLRK4Step(), gpu=nothing, kwarg
     SciMLNeuralDE{typeof(model), typeof(alg), typeof(kwargs), typeof(device)}(model, alg, kwargs, device)
 end
 
+function SciMLNeuralDE(; model=nothing, alg=NeuralDELux.SciMLRK4Step(), gpu=nothing, kwargs...)
+    if isnothing(model)
+        error("Please define a model")
+    end 
+    return SciMLNeuralDE(model; alg=alg, gpu=gpu, kwargs...)
+end
+
 function (m::SciMLNeuralDE)(X, ps, st)
     (t, x) = X
     

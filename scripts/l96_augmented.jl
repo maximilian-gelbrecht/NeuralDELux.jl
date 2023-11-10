@@ -94,24 +94,22 @@ opt_state = Optimisers.setup(opt, ps)
 valid_trajectory = NODEData.get_trajectory(valid_batched, 20)
 
 forecast_length = NeuralDELux.ForecastLength(NODEData.get_trajectory(valid_batched, 20))
-valid_error_tsit = NeuralDELux.AlternativeModelLoss(data = valid, model = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt), loss=loss_sciml)# asd
+#valid_error_tsit = NeuralDELux.AlternativeModelLoss(data = valid, model = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt), loss=loss_sciml)# asd
 
 
-TRAIN = false ##### ADD VALID ERROR TO TRAINING
+TRAIN = true ##### ADD VALID ERROR TO TRAINING
 if TRAIN 
     println("starting training...")
-    neural_de = NeuralDELux.ADNeuralDE(model=nn, alg=ADEulerStep(), dt=dt)
-    neural_de, ps, st, results_ad = NeuralDELux.train!(neural_de, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=false, additional_metric=valid_error_tsit)
+    neural_de, ps, st, results_ad = NeuralDELux.train_anode!(anode, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=false, save_name=SAVE_NAME)
 
     println("Forecast Length Tsit")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt)
-    println(forecast_length(neural_de, ps, st))
+    println(forecast_length(neural_de_single, ps, st))
 
     println("Continue training with Tsit...")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt)
-    neural_de, ps, st, results_continue_tsit = NeuralDELux.train!(neural_de, ps, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=false, valid_data=valid, scheduler_offset=250)
+    #neural_de, ps, st, results_continue_tsit = NeuralDELux.train!(neural_de_single, ps, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:2, N_epochs=20, verbose=false, valid_data=valid, scheduler_offset=250, save_name=SAVE_NAME)
  
     println("Forecast Length Tsit")
-    neural_de = NeuralDELux.SciMLNeuralDE(nn, alg=Tsit5(), dt=dt)
-    println(forecast_length(neural_de, ps, st))
+    #println(forecast_length(neural_de_single, ps, st))
+
+    #@save SAVE_NAME_RESULTS results_ad results_continue_tsit
 end
