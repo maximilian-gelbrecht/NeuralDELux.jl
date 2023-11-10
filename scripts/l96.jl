@@ -112,5 +112,5 @@ if TRAIN
     println("Forecast Length Tsit")
     println(forecast_length(neural_de_sciml_single, ps, st))
 
-    @save SAVE_NAME_RESULTS results_ad results_continue_tsit
+    @save SAVE_NAME_RESULTS results_ad results_sciml_batched results_sciml_single
 end
