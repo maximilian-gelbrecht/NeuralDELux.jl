@@ -98,8 +98,15 @@ if TRAIN
     neural_de = NeuralDELux.SciMLNeuralDE(model=nn, alg=Tsit5(), dt=dt)
     println(forecast_length(neural_de, ps, st))
 
-    @save SAVE_NAME_RESULTS results_ad results_sciml_batched results_sciml_single
+    println("Continue training with Tsit single long...")
+    neural_de = NeuralDELux.SciMLNeuralDE(model=nn, alg=Tsit5(), dt=dt)
+    neural_de, ps, st, results_sciml_single_long = NeuralDELux.train!(neural_de, ps, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:10, N_epochs=5, verbose=false, valid_data=valid, scheduler_offset=220, save_name=SAVE_NAME_MODEL)
+ 
+    println("Forecast Length Tsit")
+    neural_de = NeuralDELux.SciMLNeuralDE(model=nn, alg=Tsit5(), dt=dt)
+    println(forecast_length(neural_de, ps, st))
 
+    @save SAVE_NAME_RESULTS results_ad results_sciml_batched results_sciml_single results_sciml_single_long
 end
 
 
