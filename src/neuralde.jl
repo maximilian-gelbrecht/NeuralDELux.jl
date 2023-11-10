@@ -43,7 +43,7 @@ function (m::SciMLNeuralDE)(X, ps, st)
     end 
     
     nn_ff = ODEFunction{false}(rhs, tgrad=basic_tgrad)
-    prob = ODEProblem{false}(nn_ff, selectdim(x, ndims(x),1), (t[1],t[end]), ps)
+    prob = ODEProblem{false}(nn_ff, DeviceArray(m.device, selectdim(x, ndims(x),1)), (t[1],t[end]), ps)
 
     DeviceArray(m.device, solve(prob, m.alg; saveat=t, m.kwargs...)), st
 end

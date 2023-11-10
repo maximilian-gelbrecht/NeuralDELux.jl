@@ -67,7 +67,7 @@ begin # this will create the Dataloader from NODEData.jl that load small snippet
 end
 
 rng = Random.default_rng()
-nn = Chain(WrappedFunction(x->reshape(x,:,1,N_batch)),SamePadCircularConv((2,), 1=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>1, activation), SamePadCircularConv((1,), 1=>1),WrappedFunction(x->view(x,:,1,:)))
+nn = Chain(WrappedFunction(x->reshape(x,:,1,size(x,2))),SamePadCircularConv((2,), 1=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>N_channels, activation), SamePadCircularConv((2,), N_channels=>N_channels, activation),SamePadCircularConv((2,), N_channels=>1, activation), SamePadCircularConv((1,), 1=>1),WrappedFunction(x->view(x,:,1,:)))
 
 nn_single = Chain(WrappedFunction(x->reshape(x,:,1,1)),nn[2:end-1],WrappedFunction(x->view(x,:,1,1)))
 
