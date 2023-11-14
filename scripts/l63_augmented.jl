@@ -10,7 +10,7 @@ Random.seed!(1234)
 const device = NeuralDELux.DetermineDevice()
 
 begin # set the hyperparameters
-    SAVE_NAME = "local-test"
+    SAVE_NAME = "l63-anode"
     N_epochs = 50 
     N_t = 500 
     τ_max = 2 
@@ -24,8 +24,6 @@ begin # set the hyperparameters
     N_batch = 10 
     N_aug = 6
 end 
-
-include("l96-tools.jl")
 
 begin # generate some training data
     function lorenz63!(du,u,p,t)
@@ -82,7 +80,7 @@ forecast_length = NeuralDELux.ANODEForecastLength(valid_trajectory, x0)
 TRAIN = true ##### ADD VALID ERROR TO TRAINING
 if TRAIN 
     println("starting training...")
-    neural_de, ps, st, results_ad = NeuralDELux.train_anode!(anode, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=false, valid_data=valid_batched, valid_forecast=forecast_length, save_name=SAVE_NAME)
+    neural_de, ps, st, results_ad = NeuralDELux.train_anode!(anode, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=600, verbose=false, valid_data=valid_batched, valid_forecast=forecast_length, save_name=SAVE_NAME_MODEL)
 
     println("Forecast Length Tsit")
     #println(forecast_length(neural_de_single, ps, st))
@@ -93,5 +91,5 @@ if TRAIN
     println("Forecast Length Tsit")
     #println(forecast_length(neural_de_single, ps, st))
 
-    #@save SAVE_NAME_RESULTS results_ad results_continue_tsit
+    @save SAVE_NAME_RESULTS results_ad 
 end
