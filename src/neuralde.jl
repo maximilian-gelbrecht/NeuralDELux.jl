@@ -1,4 +1,4 @@
-using SciMLBase, Lux
+using SciMLBase, Lux, NODEData
 basic_tgrad(u,p,t) = zero(u)
 
 """
@@ -126,3 +126,13 @@ end
 
 size_to_index(size_tuple::Tuple) = [1:size_i for size_i in size_tuple]
 
+function evolve(model::AugmentedNeuralDE, ps, st, dataloader::NODEData.AbstractNODEDataloader)
+    state = augment_observable(model, dataloader[1][2])
+
+    for (i_data, data_i) in enumerate(dataloader)
+        set_data!(model, state, data_i[2][..,1])
+        state, st = model(state, ps, st)
+    end 
+
+    return state, st
+end

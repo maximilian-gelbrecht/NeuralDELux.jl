@@ -134,6 +134,63 @@ end
 
 
 """
+    ANODEForecastLength(data; threshold::Number=0.4, metric="norm")
+
+Provides an additonal metric to measure how well a model performs on `data` in term of its forecast error. The length is definded as the time step it takes until `metric` exceeds `threshold`. The initialized struct can then be called with 
+
+```julia 
+fl =  ForecastLength(data)
+res = fl(model, ps, st)
+```
+"""
+mutable struct ANODEForecastLength{D,TH,ME,MO,S} <: AbstractLossMetric
+    data::D 
+    threshold::TH 
+    metric::ME
+    modes::MO
+    initial_state::S
+end 
+
+function ANODEForecastLength(data, state; threshold::Number=0.4, modes=("forecast_delta",), metric="norm")
+    return ANODEForecastLength(data, threshold, metric, modes, state)
+end 
+
+function (LL::ANODEForecastLength)(model, ps, st)
+    t, x = LL.data
+    threshold = LL.threshold 
+    initial_states = LL.initial_state 
+    modes = LL.modes 
+
+    input_trajectory = (t,reshape(initial_states, size(initial_states)..., 1))
+   
+    # call to trajectory for the forecast 
+    traj = trajectory(model, input_trajectory, ps, st)
+
+    # add initial condition to valid set to have it comparible with the regular ForecastLength struct
+    ground_truth = cat(initial_states[model.data_index...], x, dims=ndims(x))
+    prediction = traj[1][model.data_index...,:]
+    @assert ground_truth[..,1] == prediction[..,1]
+
+    forecast_delta = forecast_δ(prediction, ground_truth, LL.metric)[:]
+
+    results = NamedTuple()
+    if "forecast_delta" in modes
+        results = (forecast_delta=forecast_delta, results...,)
+    end 
+
+    if "forecast_length" in modes 
+        results = (forecast_length=findfirst(forecast_delta .> threshold), results...)
+    end 
+    
+    return results
+end 
+
+function set_state!(f::ANODEForecastLength, state) 
+    f.initial_state = state 
+    return nothing 
+end 
+
+"""
     slice_and_batch_trajectory(t::AbstractVector, x, N_batch::Integer)
 
 Slice a single trajectory into multiple ones for the batched dataloader.

@@ -101,10 +101,12 @@ end
 
 Trains the `model` with parameters `ps` and state `st` with the `loss` function and `train_data` by applying a `opt_state` with the learning rate `η_schedule` for `N_epochs`. Returns the trained `model`, `ps`, `st`, `results`. An `additional_metric` with the signature `(model, ps, st) -> value` might be specified that is computed after every epoch.
 """
-function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0) where M<:AugmentedNeuralDE
+function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, additional_metric=nothing, valid_data=nothing, valid_forecast=nothing, scheduler_offset::Int=0) where M<:AugmentedNeuralDE
 
     best_ps = copy(ps)
-    results = (i_epoch = Int[], train_loss=Float64[], additional_loss=[], learning_rate=Float64[], duration=Float64[], valid_loss=Float64[], test_loss=Float64[], loss_min=[Inf32])
+    results = (i_epoch = Int[], train_loss=Float64[], additional_loss=[], learning_rate=Float64[], duration=Float64[], valid_loss=Float64[], test_loss=Float64[], loss_min=[Inf32], valid_forecast=[])
+    
+    final_state = augment_observable(model, train_data[1][2][..,1])
 
     for τ in τ_range 
 
@@ -142,7 +144,7 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
                 state, st = model(state, ps, st)
             end
 
-            final_state = copy(state)
+            final_state .= copy(state)
 
             train_err = mean(train_err)
             epoch_time = time() - epoch_start_time
@@ -156,7 +158,7 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
 
                 valid_err = zeros(length(train_data))
 
-                for  (i_data, data_i) in enumerate(valid_data)
+                for (i_data, data_i) in enumerate(valid_data)
                     set_data!(model, state, data_i[2][..,1])
                     y = data_i[2][..,2]
                     valid_err[i_data] = loss(state, y, model, ps, st)
@@ -166,6 +168,12 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
                 valid_err = mean(valid_err)
                 push!(results[:valid_loss], valid_err)
             end 
+
+            if !(isnothing(valid_forecast))
+                set_state!(valid_forecast, final_state)
+                vf = valid_forecast(model, ps, st)
+                push!(results[:valid_forecast], vf)
+            end
             
             if !(isnothing(additional_metric))
                 gf = additional_metric(model, ps, st)
