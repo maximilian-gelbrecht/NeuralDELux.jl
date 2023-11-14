@@ -10,7 +10,10 @@ Random.seed!(1234)
 const device = NeuralDELux.DetermineDevice()
 
 begin # set the hyperparameters
-    SAVE_NAME = "local-test"
+    SAVE_NAME = "l96-anode"
+    SAVE_NAME_MODEL = string(SAVE_NAME,"-model.jld2")
+    SAVE_NAME_RESULTS = string(SAVE_NAME,"-results.jld2")
+
     N_epochs = 50 
     N_t = 500 
     τ_max = 2 
