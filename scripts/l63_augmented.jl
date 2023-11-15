@@ -83,15 +83,15 @@ forecast_length = NeuralDELux.ANODEForecastLength(valid_trajectory, x0)
 TRAIN = true ##### ADD VALID ERROR TO TRAINING
 if TRAIN 
     println("starting training...")
-    neural_de, ps, st, results_ad = NeuralDELux.train_anode!(anode, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=600, verbose=false, valid_data=valid_batched, valid_forecast=forecast_length, save_name=SAVE_NAME_MODEL)
-
-    println("Forecast Length Tsit")
+    neural_de, ps, st, results_ad = NeuralDELux.train_anode!(anode, ps, st, loss, train_batched, opt_state, η_schedule; τ_range=2:2, N_epochs=600, verbose=true, valid_data=valid_batched, valid_forecast=forecast_length, save_name=SAVE_NAME_MODEL)
+    println("finished first training.")
+    #println("Forecast Length Tsit")
     #println(forecast_length(neural_de_single, ps, st))
 
-    println("Continue training with Tsit...")
+    #println("Continue training with Tsit...")
     #neural_de, ps, st, results_continue_tsit = NeuralDELux.train!(neural_de_single, ps, st, loss_sciml, train, opt_state, η_schedule; τ_range=2:2, N_epochs=20, verbose=false, valid_data=valid, scheduler_offset=250, save_name=SAVE_NAME)
  
-    println("Forecast Length Tsit")
+    #println("Forecast Length Tsit")
     #println(forecast_length(neural_de_single, ps, st))
 
     @save SAVE_NAME_RESULTS results_ad 
