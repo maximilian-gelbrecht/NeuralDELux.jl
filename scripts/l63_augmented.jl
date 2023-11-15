@@ -24,7 +24,7 @@ begin # set the hyperparameters
     N_t_valid = N_t_train*3
     N_t = N_t_train + N_t_valid
     activation = swish
-    N_batch = 10 
+    N_batch = 1
     N_aug = 6
 end 
 
