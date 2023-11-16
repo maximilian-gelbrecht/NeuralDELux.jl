@@ -25,7 +25,7 @@ begin # set the hyperparameters
     N_t = N_t_train + N_t_valid
     activation = swish
     N_batch = 1
-    N_aug = 6
+    N_aug = 1
 end 
 
 begin # generate some training data

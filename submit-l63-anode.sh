@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #SBATCH --qos=short
-#SBATCH --job-name=lorenz-anode-cpu-single
+#SBATCH --job-name=lorenz-anode-cpu-single-aug1
 #SBATCH --account=flai
-#SBATCH --output=lorenz-anode-cpu-single-%j-%N.out
-#SBATCH --error=lorenz-anode-cpu-single-%j-%N.err
+#SBATCH --output=lorenz-anode-cpu-single-aug1-%j-%N.out
+#SBATCH --error=lorenz-anode-cpu-single-aug1-%j-%N.err
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=6
 #SBATCH --workdir=/p/tmp/maxgelbr/code/NeuralDELux.jl/
