@@ -1,4 +1,4 @@
-using OrdinaryDiffEq, SciMLSensitivity, Lux, Optimisers, Zygote, ParameterSchedulers, ComponentArrays, StatsBase, Random
+using OrdinaryDiffEq, SciMLSensitivity, Lux, Optimisers, Zygote, ParameterSchedulers, ComponentArrays, StatsBase, Random, JLD2
 
 @testset "ADNeuralDE Layer" begin
 
@@ -9,7 +9,7 @@ using OrdinaryDiffEq, SciMLSensitivity, Lux, Optimisers, Zygote, ParameterSchedu
 
     t = sol.t 
     x = Array(sol)
-    train = (t,x)
+    train = [(t,x)]
 
     nn_model = Dense(2,2, use_bias=false)
     node_model = NeuralDELux.ADNeuralDE(model=nn_model, dt=0.05)
@@ -17,7 +17,6 @@ using OrdinaryDiffEq, SciMLSensitivity, Lux, Optimisers, Zygote, ParameterSchedu
     rng = Random.default_rng()
     ps, st = Lux.setup(rng, node_model)
     ps = ComponentArray(ps) |> gpu 
-    st = gpu(st)
 
     opt = Optimisers.AdamW(1f-2, (9.0f-1, 9.99f-1), 1.0f-4)
     opt_state = Optimisers.setup(opt, ps) 
@@ -25,26 +24,18 @@ using OrdinaryDiffEq, SciMLSensitivity, Lux, Optimisers, Zygote, ParameterSchedu
 
     loss = NeuralDELux.least_square_loss_ad
 
-    loss(train, node_model, ps, st)[1]
-
-    for i_epoch in 1:40000
-        Optimisers.adjust!(opt_state, η_schedule(i_epoch)) 
-
-        
-        loss_val, gs = Zygote.withgradient(ps -> loss(train, node_model, ps, st)[1], ps)
-
-        # and update the model with them 
-        opt_state, ps = Optimisers.update(opt_state, ps, gs[1])
-            
-        #loss_val_i = loss(train, node_model, ps, st)[1]
-        #println("Epoch [$i_epoch]: Loss $loss_val_i")
-        #println("Parameters: $ps")
-    end
-        
-    loss_val_i = loss(train, node_model, ps, st)[1] 
+    loss(train[1], node_model, ps, st)[1]
+    temppath = mktempdir(pwd(), prefix="temp-NeuralDELux-")
+    node_model, ps, st, results = NeuralDELux.train!(node_model, ps, st, loss, train, opt_state, η_schedule, N_epochs=40000, verbose=false, save_name=string(temppath,"/test.jld2"))
+   
+    loss_val_i = loss(train[1], node_model, ps, st)[1] 
     #println("Loss $loss_val_i")
 
     @test loss_val_i < 1f-1
+
+    # test load save_name
+    @load string(temppath,"/test.jld2") ps_save 
+    @test all(ps_save .≈ ps)
 end
 
 
@@ -57,15 +48,14 @@ end
 
     t = sol.t 
     x = Array(sol)
-    train = (t,x)
+    train = [(t,x)]
 
     nn_model = Dense(2,2, use_bias=false)
-    node_model = NeuralDELux.SciMLNeuralDE(nn_model, alg=Tsit5(), dt=0.05)
+    node_model = NeuralDELux.SciMLNeuralDE(model=nn_model, alg=Tsit5(), dt=0.05)
 
     rng = Random.default_rng()
     ps, st = Lux.setup(rng, node_model)
     ps = ComponentArray(ps) |> gpu 
-    st = gpu(st)
 
     opt = Optimisers.AdamW(1f-2, (9.0f-1, 9.99f-1), 1.0f-4)
     opt_state = Optimisers.setup(opt, ps) 
@@ -73,23 +63,11 @@ end
 
     loss = NeuralDELux.least_square_loss_sciml
 
-    loss(train, node_model, ps, st)[1]
+    loss(train[1], node_model, ps, st)[1]
 
-    for i_epoch in 1:40000
-        Optimisers.adjust!(opt_state, η_schedule(i_epoch)) 
-
+    node_model, ps, st, results = NeuralDELux.train!(node_model, ps, st, loss, train, opt_state, η_schedule, N_epochs=40000)
         
-        loss_val, gs = Zygote.withgradient(ps -> loss(train, node_model, ps, st)[1], ps)
-
-        # and update the model with them 
-        opt_state, ps = Optimisers.update(opt_state, ps, gs[1])
-            
-        #loss_val_i = loss(train, node_model, ps, st)[1]
-        #println("Epoch [$i_epoch]: Loss $loss_val_i")
-        #println("Parameters: $ps")
-    end
-        
-    loss_val_i = loss(train, node_model, ps, st)[1] 
+    loss_val_i = loss(train[1], node_model, ps, st)[1] 
     #println("Loss $loss_val_i")
 
     @test loss_val_i < 1f-1

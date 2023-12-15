@@ -86,8 +86,10 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
                 if !(isnothing(save_name))
                     ps_save = cpu(ps)
                     @save save_name ps_save
-                    @sprintf "model saved as %s" save_name
-                end 
+                    if verbose
+                        println("New training error minimum found, saving the parameters as $save_name now!")
+                    end
+                end              
             end
         end 
     end
@@ -198,7 +200,9 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
                 if !(isnothing(save_name))
                     ps_save = cpu(ps)
                     @save save_name ps_save
-                    @sprintf "model saved as %s" save_name
+                    if verbose
+                        println("New training error minimum found, saving the parameters as $save_name now!")
+                    end
                 end 
             end
         end 
