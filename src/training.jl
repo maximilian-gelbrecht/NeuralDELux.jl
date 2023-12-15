@@ -91,9 +91,6 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
                     end
                 end              
             end
-            println("last ps")
-            println(ps)
-            println("-----")
         end 
     end
     println("best ps")
