@@ -29,7 +29,6 @@ using OrdinaryDiffEq, SciMLSensitivity, Lux, Optimisers, Zygote, ParameterSchedu
     node_model, ps, st, results = NeuralDELux.train!(node_model, ps, st, loss, train, opt_state, η_schedule, N_epochs=40000, verbose=false, save_name=string(temppath,"/test.jld2"))
    
     loss_val_i = loss(train[1], node_model, ps, st)[1] 
-    #println("Loss $loss_val_i")
 
     @test loss_val_i < 1f-1
 
