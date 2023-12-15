@@ -80,7 +80,7 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
 
             if train_err < lowest_train_err
                 lowest_train_err = train_err 
-                best_ps = copy(ps)
+                best_ps = deepcopy(ps)
                 results[:loss_min] .= lowest_train_err
 
                 if !(isnothing(save_name))
@@ -91,9 +91,14 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
                     end
                 end              
             end
+            println("last ps")
+            println(ps)
+            println("-----")
         end 
     end
-
+    println("best ps")
+    println(best_ps)
+    println("-------")
     return model, best_ps, st, results
 end 
 
