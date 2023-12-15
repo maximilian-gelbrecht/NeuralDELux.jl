@@ -85,7 +85,7 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
 
                 if !(isnothing(save_name))
                     ps_save = cpu(ps)
-                    @save save_name model ps_save
+                    @save save_name ps_save
                     @sprintf "model saved as %s" save_name
                 end 
             end
