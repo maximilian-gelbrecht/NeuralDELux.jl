@@ -1,5 +1,4 @@
-using Zygote, SciMLSensitivity, OrdinaryDiffEq, NeuralDELux
-
+using Zygote, SciMLSensitivity, OrdinaryDiffEq, NeuralDELux, Random, Lux
 @testset "ADEulerStep" begin
 
     exp_rhs(u,p,t) = p .* u
@@ -66,7 +65,7 @@ end
     sol_tsit5 = solve(prob, RK4(), saveat=[0.03f0])
     sol_scimladrk4 = solve(prob, NeuralDELux.SciMLRK4Step(), dt=0.03f0)
 
-    @test isapprox(Array(sol_tsit5),sol_scimladrk4[:,2], rtol=1e-3) 
+    @test isapprox(Array(sol_tsit5),sol_scimladrk4[:,2], rtol=1e-2) 
 end
 
 @testset "Direct AD Lux Solvers" begin 

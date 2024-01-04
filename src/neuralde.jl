@@ -37,20 +37,47 @@ end
 function (m::SciMLNeuralDE)(X, ps, st)
     (t, x) = X
     
-    function rhs(u, p, t)
-        r, st = m.model(u, p, st)
-        return r 
-    end 
+    st_model = Lux.Experimental.StatefulLuxLayer(m.model, ps, st)
+    rhs(u, p, t) = st_model(u, p)
 
     if ndims(t)==2 # for batched use with NODEData.jl
         t = t[1,:]
     end
     
-    nn_ff = ODEFunction{false}(rhs, tgrad=basic_tgrad)
-    prob = ODEProblem{false}(nn_ff, x[..,1], (t[1],t[end]), ps)
+    prob = ODEProblem{false}(ODEFunction{false}(rhs, tgrad=basic_tgrad), x[..,1], (t[1],t[end]), ps)
 
     DeviceArray(m.device, solve(prob, m.alg; saveat=t, m.kwargs...)), st
 end
+
+"""
+    evolve(model::SciMLNeuralDE, ps, st, ic; tspan::Union{T, Nothing}=nothing, N_t::Union{Integer,Nothing}=nothing) where T
+
+Evolve the `model` by `tspan` or `N_t` (only specifiy one), starting from the initial condition `ic`
+"""
+function evolve(model::SciMLNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing}=nothing, N_t::Union{Integer,Nothing}=nothing) where {T,A<:AbstractArray}
+    @assert !(isnothing(tspan) & isnothing(N_t)) "Either tspan or N_t kwarg must be specified"
+    @assert xor(isnothing(tspan),isnothing(N_t)) "Either tspan or N_t kwarg must be specified, not both"
+
+    @assert :dt in keys(model.kwargs) "No dt given in model kwargs"
+    dt = model.kwargs[:dt]
+
+    if isnothing(N_t)
+        t_length = tspan[2] - tspan[1]
+        @assert t_length > 0 "tspan must be an interval with length longer than 0"
+        N_t = Int(ceil(t_length/dt))
+    end
+
+    t_0 = isnothing(tspan) ? 0 : tspan[1]
+    t = t_0:dt:(t_0+dt*N_t)
+
+    output = ic 
+    for i_t in 1:N_t 
+        output, st = model((t[i_t:i_t+1], reshape(output, size(output)...,1)), ps, st)
+        output = output[..,end]
+    end 
+
+    return output
+end 
 
 
 """
@@ -82,6 +109,32 @@ function SciMLNeuralDE(m::ADNeuralDE, alg=Tsit5(); gpu=nothing)
     device = DetermineDevice(gpu=gpu)
     SciMLNeuralDE(m.model, alg, m.kwargs, device)
 end 
+
+
+"""
+    evolve(model::ADNeuralDE, ps, st, ic; tspan::Union{T, Nothing}=nothing, N_t::Union{Integer,Nothing}=nothing) where T
+
+Evolve the `model` by `tspan` or `N_t` (only specifiy one), starting from the initial condition `ic`
+"""
+function evolve(model::ADNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing}=nothing, N_t::Union{Integer,Nothing}=nothing) where {T,A<:AbstractArray}
+    @assert !(isnothing(tspan) & isnothing(N_t)) "Either tspan or N_t kwarg must be specified"
+    @assert xor(isnothing(tspan),isnothing(N_t)) "Either tspan or N_t kwarg must be specified, not both"
+
+    if isnothing(N_t)
+        (; dt) = model 
+        t_length = tspan[2] - tspan[1]
+        @assert t_length > 0 "tspan must be an interval with length longer than 0"
+        N_t = Int(ceil(t_length/dt))
+    end
+
+    output = ic 
+    for i_t in 1:N_t 
+        output, st = model(output, ps, st)
+    end 
+
+    return output
+end 
+
 
 """
     AugmentedNeuralDE(node_model::Union{ADNeuralDE, SciMLNeuralDE}, size_aug::Tuple, size_orig::Tuple, cat_dim) 

@@ -1,6 +1,6 @@
 # functions for setting everything up and training the models 
 
-using NODEData, Optimisers, Zygote, StatsBase, Random, Printf, JLD2
+using NODEData, Optimisers, Zygote, StatsBase, Random, Printf, JLD2, Adapt
 
 """
     model, ps, st, training_results = train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0)
@@ -84,7 +84,7 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
                 results[:loss_min] .= lowest_train_err
 
                 if !(isnothing(save_name))
-                    ps_save = cpu(ps)
+                    ps_save = adapt(Array, ps)
                     @save save_name ps_save
                     if verbose
                         println("New training error minimum found, saving the parameters as $save_name now!")
