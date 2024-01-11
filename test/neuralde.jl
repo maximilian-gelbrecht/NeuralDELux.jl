@@ -21,14 +21,14 @@ train = [(t,x)]
 
     ad_neural_de = NeuralDELux.ADNeuralDE(model=nn_model, dt=0.1, alg=ADRK4Step()) 
 
-    fc = NeuralDELux.evolve(sciml_neural_de, ps, st, ic, N_t=10)
+    fc = NeuralDELux.evolve(sciml_neural_de, ps, st, ic; N_t=10, tstops=0.1)
     fc_2 = NeuralDELux.evolve(ad_neural_de, ps, st, ic, N_t=10)
 
-    @test all(fc .≈ fc_2)
+    @test isapprox(fc,fc_2,rtol=1e-6)
 
     fc_2 = NeuralDELux.evolve(sciml_neural_de, ps, st, ic, tspan=(0,1.))
 
-    @test all(fc .≈ fc_2)
+    @test isapprox(fc,fc_2,rtol=1e-6)
 end 
 @testset "ADNeuralDE Layer" begin
 

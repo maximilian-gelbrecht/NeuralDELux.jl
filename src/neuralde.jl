@@ -54,29 +54,22 @@ end
 
 Evolve the `model` by `tspan` or `N_t` (only specifiy one), starting from the initial condition `ic`
 """
-function evolve(model::SciMLNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing}=nothing, N_t::Union{Integer,Nothing}=nothing) where {T,A<:AbstractArray}
+function evolve(model::SciMLNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing}=nothing, N_t::Union{Integer,Nothing}=nothing, kwargs...) where {T,A<:AbstractArray}
     @assert !(isnothing(tspan) & isnothing(N_t)) "Either tspan or N_t kwarg must be specified"
     @assert xor(isnothing(tspan),isnothing(N_t)) "Either tspan or N_t kwarg must be specified, not both"
 
     @assert :dt in keys(model.kwargs) "No dt given in model kwargs"
     dt = model.kwargs[:dt]
 
-    if isnothing(N_t)
-        t_length = tspan[2] - tspan[1]
-        @assert t_length > 0 "tspan must be an interval with length longer than 0"
-        N_t = Int(ceil(t_length/dt))
+    if isnothing(tspan)
+        tspan = (eltype(ic)(0), eltype(ic)(dt*N_t))
     end
 
-    t_0 = isnothing(tspan) ? 0 : tspan[1]
-    t = t_0:dt:(t_0+dt*N_t)
+    st_model = Lux.Experimental.StatefulLuxLayer(model.model, ps, st)
+    rhs(u, p, t) = st_model(u, p)    
+    prob = ODEProblem{false}(ODEFunction{false}(rhs), ic, tspan, ps)
 
-    output = ic 
-    for i_t in 1:N_t 
-        output, st = model((t[i_t:i_t+1], reshape(output, size(output)...,1)), ps, st)
-        output = output[..,end]
-    end 
-
-    return output
+    return DeviceArray(model.device, solve(prob, model.alg; dt=dt, dense=false, save_on=false, save_start=false, save_end=true, model.kwargs..., kwargs...))[..,1]
 end 
 
 
