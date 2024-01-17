@@ -1,7 +1,7 @@
 name = "NeuralDELux"
 uuid = "42edd903-6642-4dc2-93f6-9358071582bf"
 authors = ["Maximilian Gelbrecht <maximilian.gelbrecht@posteo.de> and contributors"]
-version = "1.1.10-DEV"
+version = "1.1.11-DEV"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"

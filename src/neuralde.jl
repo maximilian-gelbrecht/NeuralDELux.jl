@@ -1,5 +1,4 @@
 using SciMLBase, Lux, NODEData
-basic_tgrad(u,p,t) = zero(u)
 
 """
     SciMLNeuralDE(model; alg=ADEulerStep(), gpu=nothing, kwargs...)
@@ -44,7 +43,7 @@ function (m::SciMLNeuralDE)(X, ps, st)
         t = t[1,:]
     end
     
-    prob = ODEProblem{false}(ODEFunction{false}(rhs, tgrad=basic_tgrad), x[..,1], (t[1],t[end]), ps)
+    prob = ODEProblem{false}(ODEFunction{false}(rhs), x[..,1], (t[1],t[end]), ps)
 
     DeviceArray(m.device, solve(prob, m.alg; saveat=t, m.kwargs...)), st
 end
