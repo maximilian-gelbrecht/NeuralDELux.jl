@@ -100,7 +100,7 @@ end
 Evolves a `model` that is suspected to blowup and returns the last time step if that is the case, and if not returns `default_time`
 """
 function evolve_to_blowup(model::SciMLNeuralDE, ps, st, ic; default_time=Inf, kwargs...)
-    sol = evolve(model, ps, st, ic; kwargs...)
+    sol = evolve_sol(model, ps, st, ic; kwargs...)
     if (sol.retcode != :Success)
         return soli.t[end]
     else 
