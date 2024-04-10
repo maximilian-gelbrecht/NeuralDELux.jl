@@ -71,7 +71,11 @@ function evolve(model::SciMLNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing}=no
     return DeviceArray(model.device, solve(prob, model.alg; dt=dt, dense=false, save_on=false, save_start=false, save_end=true, model.kwargs..., kwargs...))[..,1]
 end 
 
+"""
+    evolve_sol
 
+Same as `evolve` but returns a SciML solution object. 
+"""
 function evolve_sol(model::SciMLNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing}=nothing, N_t::Union{Integer,Nothing}=nothing, kwargs...) where {T,A<:AbstractArray}
     @assert !(isnothing(tspan) & isnothing(N_t)) "Either tspan or N_t kwarg must be specified"
     @assert xor(isnothing(tspan),isnothing(N_t)) "Either tspan or N_t kwarg must be specified, not both"
@@ -95,7 +99,7 @@ end
 
 Evolves a `model` that is suspected to blowup and returns the last time step if that is the case, and if not returns `default_time`
 """
-function evolve_to_blowup(model::SciMLNeuralDE, ps, st, ic::A; default_time=Inf, kwargs...)
+function evolve_to_blowup(model::SciMLNeuralDE, ps, st, ic; default_time=Inf, kwargs...)
     sol = evolve(model, ps, st, ic; kwargs...)
     if (sol.retcode != :Success)
         return soli.t[end]
