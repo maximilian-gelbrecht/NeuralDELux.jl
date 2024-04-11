@@ -63,11 +63,9 @@ end
 
 Integrated a longer trajectory from a (trained) single step solver until it blows up. 
 """
-function evolve_to_blowup(singlestep_solver, X, ps, st, dt=1, default_time=Inf)
-    t, x = X 
+function evolve_to_blowup(singlestep_solver, ps, st, ic; N_t=100, dt=1, default_time=Inf)
 
-    N_t = size(t, ndims(t))
-    output = deepcopy(x)
+    output = deepcopy(ic)
 
     for i_t in 2:N_t
         output, st = singlestep_solver(output, ps, st)
