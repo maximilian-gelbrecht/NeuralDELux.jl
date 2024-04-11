@@ -59,6 +59,28 @@ function trajectory(singlestep_solver, X, ps, st)
 end 
 
 """
+    evolve_to_blowup(singlestep_solver, x, ps, st, dt, default_time=Inf)
+
+Integrated a longer trajectory from a (trained) single step solver until it blows up. 
+"""
+function evolve_to_blowup(singlestep_solver, X, ps, st, dt=1, default_time=Inf)
+    t, x = X 
+
+    N_t = size(t, ndims(t))
+    output = deepcopy(x)
+
+    for i_t in 2:N_t
+        output, st = singlestep_solver(output, ps, st)
+
+        if (sum(isnan.(output)) > 0) | (sum(isinf.(output)) > 0)
+            return i_t*dt
+        end 
+    end 
+
+    return default_time
+end 
+
+"""
     SciMLEulerStep
 
 Does one Euler step using direct AD. Expected to be used like a solver algorithm from `OrdinaryDiffEq.jl`, so with `solve(prob::AbstractDEProblem, ADEulerStep())`. 

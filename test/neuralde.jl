@@ -41,7 +41,7 @@ end
 
     opt = Optimisers.AdamW(1f-2, (9.0f-1, 9.99f-1), 1.0f-4)
     opt_state = Optimisers.setup(opt, ps) 
-    η_schedule = SinExp(λ0=1f-2,λ1=1f-4,period=50,γ=0.995f0)
+    η_schedule = SinExp(l0=1f-2,l1=1f-4,period=50,decay=0.995f0)
 
     loss = NeuralDELux.least_square_loss_ad
 
@@ -74,7 +74,7 @@ end
 
     opt = Optimisers.AdamW(1f-2, (9.0f-1, 9.99f-1), 1.0f-4)
     opt_state = Optimisers.setup(opt, ps) 
-    η_schedule = SinExp(λ0=1f-2,λ1=1f-4,period=50,γ=0.995f0)
+    η_schedule = SinExp(l0=1f-2,l1=1f-4,period=50,decay=0.995f0)
 
     loss = NeuralDELux.least_square_loss_sciml
 

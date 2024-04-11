@@ -102,7 +102,7 @@ Evolves a `model` that is suspected to blowup and returns the last time step if 
 function evolve_to_blowup(model::SciMLNeuralDE, ps, st, ic; default_time=Inf, kwargs...)
     sol = evolve_sol(model, ps, st, ic; kwargs...)
     if (sol.retcode != :Success)
-        return soli.t[end]
+        return sol.t[end]
     else 
         return default_time
     end 
@@ -163,6 +163,28 @@ function evolve(model::ADNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing}=nothi
     return output
 end 
 
+function evolve_to_blowup(model::ADNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing}=nothing, default_time=Inf,  N_t::Union{Integer,Nothing}=nothing) where {T,A<:AbstractArray}
+    @assert !(isnothing(tspan) & isnothing(N_t)) "Either tspan or N_t kwarg must be specified"
+    @assert xor(isnothing(tspan),isnothing(N_t)) "Either tspan or N_t kwarg must be specified, not both"
+
+    if isnothing(N_t)
+        (; dt) = model 
+        t_length = tspan[2] - tspan[1]
+        @assert t_length > 0 "tspan must be an interval with length longer than 0"
+        N_t = Int(ceil(t_length/dt))
+    end
+
+    output = ic 
+    for i_t in 1:N_t 
+        output, st = model(output, ps, st)
+
+        if (sum(isnan.(output)) > 0) | (sum(isinf.(output)) > 0)
+            return i_t*model.dt
+        end 
+    end 
+
+    return default_time
+end 
 
 """
     AugmentedNeuralDE(node_model::Union{ADNeuralDE, SciMLNeuralDE}, size_aug::Tuple, size_orig::Tuple, cat_dim) 
