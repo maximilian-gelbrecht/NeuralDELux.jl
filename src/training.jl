@@ -69,9 +69,9 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
             end 
 
             if verbose            
-                @sprintf "...computing losses..."
-                @sprintf "epoch %04i - duration = %.1f  - learning rate = %.4e" i_epoch epoch_time η_schedule(i_epoch)
-                @sprintf "train loss: τ=%04i - loss=%.4e" τ train_err
+                println("...computing losses...")
+                println("epoch ",i_epoch,"- duration = ",epoch_time,"  - learning rate = ",η_schedule(i_epoch))
+                println("train loss: τ=",τ," - loss=",train_err)
                 
                 if !(isnothing(additional_metric))
                     println("Additional metric loss = ",gf)
