@@ -65,12 +65,12 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
             push!(results[:duration], epoch_time)
 
             if !(isnothing(valid_data))
-                valid_err = mean([loss(valid_data_i, model, ps, st)[1] for valid_data_i in valid_data])
+                valid_err = mean([loss(valid_data[i], model, ps, st)[1] for i=1:NN_valid])
                 push!(results[:valid_loss], valid_err)
             end 
 
             if !(isnothing(test_data))
-                valid_err = mean([loss(test_data_i, model, ps, st)[1] for test_data_i in valid_data])
+                test_err = mean([loss(test_data_i, model, ps, st)[1] for test_data_i in test_data])
                 push!(results[:test_loss], test_err)
             end 
             
