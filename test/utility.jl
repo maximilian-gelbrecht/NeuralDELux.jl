@@ -5,7 +5,7 @@ using Lux, Random
     rng = Random.default_rng()
     nn = NeuralDELux.SamePadCircularConv((2,2),1=>1)
     ps, st = Lux.setup(rng, nn)
-    A = rand(20,20,1,1)
+    A = rand(Float32,20,20,1,1)
 
     out, st = nn(A, ps, st)
     @test size(out) == size(A)

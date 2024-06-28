@@ -55,10 +55,11 @@ end
         X*Y - b*Z]
     end 
     
-    σ, r, b = 10., 28., 8/3.
+    σ, r, b = 10f0, 28f0, 8/3f0
     p = [σ, r, b]
-    u0 = rand(3)
+    u0 = rand(Float32,3)
     tspan = (0f0, 0.03f0)
+    dt = 0.03f0
 
     prob = ODEProblem(lorenz63, u0, tspan, p)
     
@@ -80,9 +81,9 @@ end
 
     model(x, ps, st) = lorenz63(x,ps,0.), nothing
 
-    σ, r, b = 10., 28., 8/3.
+    σ, r, b = 10f0, 28f0, 8/3f0
     p = [σ, r, b]
-    u0 = rand(3)
+    u0 = rand(Float32,3)
     tspan = (0f0, 0.03f0)
     dt = 0.03f0
 
