@@ -83,7 +83,10 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
                 println("...computing losses...")
                 println("epoch ",i_epoch,"- duration = ",epoch_time,"  - learning rate = ",η_schedule(i_epoch))
                 println("train loss: τ=",τ," - loss=",train_err)
-                println("valid loss: τ=",τ," - loss=",valid_err)
+                
+                if !(isnothing(valid_data))
+                    println("valid loss: τ=",τ," - loss=",valid_err)
+                end
 
                 if !(isnothing(additional_metric))
                     println("Additional metric loss = ",gf)
