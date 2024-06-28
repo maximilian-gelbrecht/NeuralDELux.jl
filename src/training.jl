@@ -3,11 +3,17 @@
 using NODEData, Optimisers, Zygote, StatsBase, Random, Printf, JLD2, Adapt
 
 """
-    model, ps, st, training_results = train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, save_results_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0)
+    model, ps, st, training_results = train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, save_results_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0, compute_initial_error::Bool=true, save_mode::Symbol=:valid)
 
-Trains the `model` with parameters `ps` and state `st` with the `loss` function and `train_data` by applying a `opt_state` with the learning rate `η_schedule` for `N_epochs`. Returns the trained `model`, `ps`, `st`, `results`. An `additional_metric` with the signature `(model, ps, st) -> value` might be specified that is computed after every epoch.
+Trains the `model` with parameters `ps` and state `st` with the `loss` function and `train_data` by applying a `opt_state` with the learning rate `η_schedule` for `N_epochs`. Returns the trained `model`, `ps`, `st`, `results`. An `additional_metric` with the signature `(model, ps, st) -> value` might be specified that is computed after every epoch. `save_mode` determines if the model is saved with the lowest error on the `:valid` set or `:train` set
 """
-function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, save_results_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0)
+function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, save_results_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0, compute_initial_error::Bool=true, save_mode::Symbol=:valid)
+
+    @assert save_mode in [:valid, :train] "save_mode has to be :valid or :train"
+
+    if (save_mode == :valid) & isnothing(valid_data) # override save_mode if no valid data is given
+        save_mode = :train 
+    end 
 
     best_ps = copy(ps)
     results = (i_epoch = Int[], train_loss=Float64[], additional_loss=[], learning_rate=Float64[], duration=Float64[], valid_loss=Float64[], test_loss=Float64[], loss_min=[Inf32], i_epoch_min=[1])
@@ -18,9 +24,12 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
             train_data = NODEDataloader(train_data, τ) 
         end 
 
-        NN_train = length(train_data) > 100 ? 100 : length(train_data)
+        # initial error 
+        lowest_train_err = compute_initial_error ? mean([loss(train_data[i], model, ps, st)[1] for i=1:length(train_data)]) : Inf
 
-        lowest_train_err = Inf 
+        NN_valid = !(isnothing(valid_data)) ? (length(valid_data) > 100 ? 100 : length(valid_data)) : 0
+        lowest_valid_err = compute_initial_error & !(isnothing(valid_data)) ? mean([loss(valid_data[i], model, ps, st)[1] for i=1:NN_valid]) : Inf
+
         best_ps = copy(ps)
 
         for i_epoch in 1:N_epochs
@@ -37,15 +46,17 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
             end
 
             epoch_start_time = time()
+            losses = zeros(Float32, length(train_data))
 
-            for data_index in data_order
+            for (i_data, data_index) in enumerate(data_order)
                 data_i = train_data[data_index]
                 loss_p(ps) = loss(data_i, model, ps, st)
-                gs = Zygote.gradient(loss_p, ps)
+                l, gs = Zygote.withgradient(loss_p, ps)
+                losses[i_data] = l
                 opt_state, ps = Optimisers.update(opt_state, ps, gs[1])
             end
 
-            train_err = mean([loss(train_data[i], model, ps, st)[1] for i=1:NN_train])
+            train_err = mean(losses)
             epoch_time = time() - epoch_start_time
 
             push!(results[:i_epoch], i_epoch)
@@ -72,7 +83,8 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
                 println("...computing losses...")
                 println("epoch ",i_epoch,"- duration = ",epoch_time,"  - learning rate = ",η_schedule(i_epoch))
                 println("train loss: τ=",τ," - loss=",train_err)
-                
+                println("valid loss: τ=",τ," - loss=",valid_err)
+
                 if !(isnothing(additional_metric))
                     println("Additional metric loss = ",gf)
                 end
@@ -82,20 +94,37 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
                 @save save_results_name results
             end 
 
-            if train_err < lowest_train_err
-                lowest_train_err = train_err 
-                best_ps = deepcopy(ps)
-                results[:loss_min] .= lowest_train_err
-                results[:i_epoch_min] .= i_epoch
-
-                if !(isnothing(save_name))
-                    ps_save = adapt(Array, ps) # in case ps is on GPU transfer it to CPU for saving
-                    @save save_name ps_save
-                    if verbose
-                        println("New training error minimum found, saving the parameters as $save_name now!")
-                    end
-                end              
-            end
+            if save_mode==:valid 
+                if valid_err < lowest_valid_err
+                    lowest_valid_err = valid_err 
+                    best_ps = deepcopy(ps)
+                    results[:loss_min] .= lowest_valid_err
+                    results[:i_epoch_min] .= i_epoch
+    
+                    if !(isnothing(save_name))
+                        ps_save = adapt(Array, ps) # in case ps is on GPU transfer it to CPU for saving
+                        @save save_name ps_save
+                        if verbose
+                            println("New valid error minimum found, saving the parameters as $save_name now!")
+                        end
+                    end              
+                end
+            else
+                if train_err < lowest_train_err
+                    lowest_train_err = train_err 
+                    best_ps = deepcopy(ps)
+                    results[:loss_min] .= lowest_train_err
+                    results[:i_epoch_min] .= i_epoch
+    
+                    if !(isnothing(save_name))
+                        ps_save = adapt(Array, ps) # in case ps is on GPU transfer it to CPU for saving
+                        @save save_name ps_save
+                        if verbose
+                            println("New training error minimum found, saving the parameters as $save_name now!")
+                        end
+                    end              
+                end
+            end 
         end 
     end
     return model, best_ps, st, results

@@ -80,7 +80,8 @@ end
 
     loss(train[1], node_model, ps, st)[1]
 
-    node_model, ps, st, results = NeuralDELux.train!(node_model, ps, st, loss, train, opt_state, η_schedule, N_epochs=40000, verbose=false)
+    # regular data is inserted as valid data to test those functions here
+    node_model, ps, st, results = NeuralDELux.train!(node_model, ps, st, loss, train, opt_state, η_schedule, N_epochs=40000, valid_data=train, verbose=false)
         
     loss_val_i = loss(train[1], node_model, ps, st)[1] 
     #println("Loss $loss_val_i")
