@@ -37,7 +37,11 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
             Optimisers.adjust!(opt_state, η_schedule(i_epoch + scheduler_offset)) 
 
             if verbose 
+                println("______________________________")
                 println("starting training epoch %i...", i_epoch)
+                println("train err = ", lowest_train_err)
+                println("valid err = ", lowest_valid_err)
+                println("------------")
             end
 
             data_order = 1:length(train_data)
@@ -64,11 +68,9 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
             push!(results[:learning_rate], η_schedule(i_epoch))
             push!(results[:duration], epoch_time)
 
-            if !(isnothing(valid_data))
-                valid_err = mean([loss(valid_data[i], model, ps, st)[1] for i=1:NN_valid])
-                push!(results[:valid_loss], valid_err)
-            end 
-
+            valid_err = !(isnothing(valid_data)) ? mean([loss(valid_data[i], model, ps, st)[1] for i=1:NN_valid]) : Inf            
+            push!(results[:valid_loss], valid_err)
+ 
             if !(isnothing(test_data))
                 test_err = mean([loss(test_data_i, model, ps, st)[1] for test_data_i in test_data])
                 push!(results[:test_loss], test_err)
