@@ -118,11 +118,36 @@ function solve(prob::AbstractDEProblem, solver::SciMLRK4Step; kwargs...)
     @muladd cat(u, u + (dt/6) .* (k₁ + 2 .* (k₂ + k₃) + f(u + dt .* k₃, p, t + dt)), dims=ndims(u)+1)
 end 
 
-struct MultiStepSolver{A}
-    N::Int
-    alg::A
+struct MultiStepRK4
 end
 
-function solve(model, x, ps, st, solver::MultiStepSolver, dt; kwargs...)
-    # difficult without mutation
-end
+function solve(prob::AbstractDEProblem, solver::MultiStepRK4; kwargs...)
+    
+    @assert :dt in keys(kwargs) "dt not given for MultiStepSolver"
+
+    u = prob.u0 
+    f = prob.f.f
+    p = prob.p
+    t = prob.tspan[1]
+    dt = kwargs[:dt]
+    dt_half = dt/2
+
+    N = Int(round((prob.tspan[2] - prob.tspan[1])/dt))
+
+    @assert N > 0 "Number of steps needs to be larger than 0"
+
+    k₁ = f(u, p, t)
+    k₂ = @muladd f(u + dt_half .* k₁, p, t + dt_half)
+    k₃ = @muladd f(u + dt_half .* k₂, p, t + dt_half)
+
+    out = @muladd cat(u, u + (dt/6) .* (k₁ + 2 .* (k₂ + k₃) + f(u + dt .* k₃, p, t + dt)), dims=ndims(u)+1)
+
+    for i=2:N 
+        k₁ = f(out[..,i], p, t)
+        k₂ = @muladd f(out[..,i] + dt_half .* k₁, p, t + dt_half)
+        k₃ = @muladd f(out[..,i] + dt_half .* k₂, p, t + dt_half)
+        out = @muladd cat(out, out[..,i] + (dt/6) .* (k₁ + 2 .* (k₂ + k₃) + f(out[..,i] + dt .* k₃, p, t + dt)), dims=ndims(u)+1)
+    end 
+
+    return out 
+end 

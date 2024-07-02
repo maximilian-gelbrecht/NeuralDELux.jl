@@ -97,5 +97,14 @@ end
 
     @test sol_adrk4[1] ≈ sol_scimlrk4[:,2]
     @test sol_adeuler[1] ≈ sol_scimleuler[:,2]
+
+    tspan = (0f0, 0.12f0)
+    dt = 0.03f0
+    prob = ODEProblem(lorenz63, u0, tspan, p)
+
+    sol_scimlrk4_multi = solve(prob, NeuralDELux.MultiStepRK4(); dt=dt)
+    sol_rk4_gt = Array(solve(prob, RK4(); dt=dt))
+   
+    @test sol_scimlrk4_multi[:,end] ≈ sol_rk4_gt[:,end]
 end 
 
