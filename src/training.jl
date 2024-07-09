@@ -3,11 +3,11 @@
 using NODEData, Optimisers, Zygote, StatsBase, Random, Printf, JLD2, Adapt
 
 """
-    model, ps, st, training_results = train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, save_results_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0, compute_initial_error::Bool=true, save_mode::Symbol=:valid)
+    model, ps, st, training_results = train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, save_results_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0, compute_initial_error::Bool=true, save_mode::Symbol=:valid, adjust_loss_func::Bool = false)
 
-Trains the `model` with parameters `ps` and state `st` with the `loss` function and `train_data` by applying a `opt_state` with the learning rate `η_schedule` for `N_epochs`. Returns the trained `model`, `ps`, `st`, `results`. An `additional_metric` with the signature `(model, ps, st) -> value` might be specified that is computed after every epoch. `save_mode` determines if the model is saved with the lowest error on the `:valid` set or `:train` set
+Trains the `model` with parameters `ps` and state `st` with the `loss` function and `train_data` by applying a `opt_state` with the learning rate `η_schedule` for `N_epochs`. Returns the trained `model`, `ps`, `st`, `results`. An `additional_metric` with the signature `(model, ps, st) -> value` might be specified that is computed after every epoch. `save_mode` determines if the model is saved with the lowest error on the `:valid` set or `:train` set. If `adjust_loss_func==true` for each new forecast length `loss = remake(loss, length)` is called. 
 """
-function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, save_results_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0, compute_initial_error::Bool=true, save_mode::Symbol=:valid)
+function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, save_results_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0, compute_initial_error::Bool=true, save_mode::Symbol=:valid, adjust_loss_func::Bool=false)
 
     @assert save_mode in [:valid, :train] "save_mode has to be :valid or :train"
 
@@ -23,6 +23,8 @@ function train!(model, ps, st, loss, train_data, opt_state, η_schedule; τ_rang
         if length(τ_range) != 1 # if only a single \tau is given, we assume that the Dataloader is the right one
             train_data = NODEDataloader(train_data, τ) 
         end 
+
+        loss = adjust_loss_func ? remake(loss, τ) : loss 
 
         # initial error 
         lowest_train_err = compute_initial_error ? mean([loss(train_data[i], model, ps, st)[1] for i=1:length(train_data)]) : Inf
