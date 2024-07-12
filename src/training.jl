@@ -22,6 +22,10 @@ function train!(model, ps, st, loss_func, train_data, opt_state, η_schedule; τ
 
         if length(τ_range) != 1 # if only a single \tau is given, we assume that the Dataloader is the right one
             train_data = remake_dataloader(train_data, τ) 
+            
+            if !(isnothing(valid_data))
+                valid_data = remake_dataloader(valid_data, τ)
+            end
         end 
 
         loss = typeof(loss_func) <: AbstractVector ? loss_func[i] : loss_func
