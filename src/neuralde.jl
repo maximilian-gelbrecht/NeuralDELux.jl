@@ -45,7 +45,7 @@ function (m::SciMLNeuralDE)(X, ps, st)
     
     prob = ODEProblem{false}(ODEFunction{false}(rhs), x[..,1], (t[1],t[end]), ps)
 
-    DeviceArray(m.device, solve(prob, m.alg; saveat=t, m.kwargs...)), st
+    m.device(solve(prob, m.alg; saveat=t, m.kwargs...)), st
 end
 
 """
@@ -68,7 +68,7 @@ function evolve(model::SciMLNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing}=no
     rhs(u, p, t) = st_model(u, p)    
     prob = ODEProblem{false}(ODEFunction{false}(rhs), ic, tspan, ps)
 
-    return DeviceArray(model.device, solve(prob, model.alg; dt=dt, dense=false, save_on=false, save_start=false, save_end=true, model.kwargs..., kwargs...))[..,1]
+    return model.device(solve(prob, model.alg; dt=dt, dense=false, save_on=false, save_start=false, save_end=true, model.kwargs..., kwargs...))[..,1]
 end 
 
 """
@@ -218,7 +218,7 @@ end
 
 function augment_observable(m::AugmentedNeuralDE, observable::AbstractArray{T}) where T 
     dev = DetermineDevice(observable)
-    cat(observable, DeviceArray(dev, zeros(T,m.size_aug...)), dims=m.cat_dim)
+    cat(observable, dev(zeros(T,m.size_aug...)), dims=m.cat_dim)
 end
 
 function set_data!(m::AugmentedNeuralDE, state, data)

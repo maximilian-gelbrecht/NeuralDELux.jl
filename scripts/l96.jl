@@ -4,7 +4,7 @@ Pkg.activate("scripts") # change this to "." incase your "scripts" is already yo
 using Lux, LuxCUDA, Plots, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, NNlib, SciMLSensitivity, JLD2
 
 using NeuralDELux, NODEData
-import NeuralDELux: DeviceArray, SamePadCircularConv
+import NeuralDELux: SamePadCircularConv
 
 Random.seed!(1234)
 const device = NeuralDELux.DetermineDevice()
@@ -40,7 +40,7 @@ begin # standard parameters of Lorenz' paper
     p = F, h, c, b, K, J 
 
     N = K+K*J
-    u0 = DeviceArray(device, rand(Float32, N))
+    u0 = device(rand(Float32, N))
     tspan = (100f0, 200f0)
 
     prob = ODEProblem(lorenz96_2layer, u0, tspan, p)
@@ -60,7 +60,7 @@ end
 
 begin # this will create the Dataloader from NODEData.jl that load small snippets of the trajectory
     t = sol.t
-    sol = DeviceArray(device, sol)
+    sol = device(sol)
     
     train, valid = NODEDataloader(sol, t, 2, valid_set=0.1)
     train_batched, valid_batched = NODEData.MultiTrajectoryBatchedNODEDataloader(NeuralDELux.slice_and_batch_trajectory(t, sol, N_batch), 2, valid_set=0.1) # there's something wrong here

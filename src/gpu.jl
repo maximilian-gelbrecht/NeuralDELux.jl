@@ -1,9 +1,4 @@
-using CUDA, Adapt
-
-abstract type AbstractDevice end 
-abstract type AbstractGPUDevice <: AbstractDevice end 
-struct DeviceCPU <: AbstractDevice end 
-struct DeviceCUDA <: AbstractGPUDevice end 
+using CUDA, LuxCUDA
 
 """
     DetermineDevice(; gpu::Union{Nothing, Bool}=nothing)   
@@ -12,26 +7,19 @@ Initializes the device that is used. Returns either `DeviceCPU` or `DeviceCUDA`.
 """
 function DetermineDevice(; gpu::Union{Nothing, Bool}=nothing)   
     if isnothing(gpu)
-        dev = CUDA.functional() ? DeviceCUDA() : DeviceCPU()
+        dev = CUDA.functional() ? gpu_device() : cpu_device()
     else 
-        dev = gpu ? DeviceCUDA() : DeviceCPU()
+        dev = gpu ? gpu_device() : cpu_device()
     end 
     return dev 
 end 
 
 function DetermineDevice(x::AbstractArray)
     if typeof(x) <: CuArray
-        return DeviceCUDA()
+        return gpu_device()
     elseif typeof(x) <: Array 
-        return DeviceCPU()
+        return cpu_device()
     else
         error("Can't determine Device based on input array ")
     end 
 end 
-
-isgpu(::DeviceCUDA) = true 
-isgpu(::DeviceCPU) = false
-
-DeviceArray(dev::DeviceCUDA, x) = adapt(CuArray, x)
-DeviceArray(dev::DeviceCPU, x) = adapt(Array, x)
-

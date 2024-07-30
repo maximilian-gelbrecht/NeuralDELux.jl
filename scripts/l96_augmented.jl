@@ -4,7 +4,7 @@ Pkg.activate("scripts") # change this to "." incase your "scripts" is already yo
 using Lux, LuxCUDA, Plots, EllipsisNotation, OrdinaryDiffEq, Random, ComponentArrays, Optimisers, ParameterSchedulers, SciMLSensitivity, NNlib, JLD2
 
 using NeuralDELux, NODEData
-import NeuralDELux: DeviceArray, SamePadCircularConv
+import NeuralDELux: SamePadCircularConv
 
 Random.seed!(1234)
 const device = NeuralDELux.DetermineDevice()
@@ -41,7 +41,7 @@ begin # standard parameters of Lorenz' paper
     p = F, h, c, b, K, J 
 
     N = K+K*J
-    u0 = DeviceArray(device, rand(Float32, N))
+    u0 = device(rand(Float32, N))
     tspan = (100f0, 200f0)
 
     prob = ODEProblem(lorenz96_2layer, u0, tspan, p)
@@ -66,7 +66,7 @@ end
 
 begin # this will create the Dataloader from NODEData.jl that load small snippets of the trajectory
     t = sol.t
-    sol = DeviceArray(device, sol)
+    sol = device(sol)
 
     observed_data = reshape(sol[1:K,:], K,1,:)
     

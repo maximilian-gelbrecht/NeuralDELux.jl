@@ -48,7 +48,7 @@ function trajectory(singlestep_solver, X, ps, st)
 
     N_t = size(t, ndims(t))
     s = [size(x)...]
-    output = DeviceArray(dev, zeros(eltype(x), (s[1:end-1]..., N_t)))
+    output = dev(zeros(eltype(x), (s[1:end-1]..., N_t)))
 
     output[..,1:1] = x[..,1:1]
     for i_t in 2:N_t
