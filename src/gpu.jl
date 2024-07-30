@@ -1,4 +1,4 @@
-using CUDA, LuxCUDA
+using CUDA, Lux, LuxCUDA, LuxDeviceUtils
 
 """
     DetermineDevice(; gpu::Union{Nothing, Bool}=nothing)   
@@ -23,3 +23,7 @@ function DetermineDevice(x::AbstractArray)
         error("Can't determine Device based on input array ")
     end 
 end 
+
+DeviceArray(device::LuxCUDADevice{D}, x) where D = CuArray(x)
+DeviceArray(device::LuxCPUDevice, x) = Array(x)
+DeviceArray(device::LuxDeviceUtils.AbstractLuxDevice, x) = Array(x)

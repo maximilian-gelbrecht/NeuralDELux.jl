@@ -45,7 +45,7 @@ function (m::SciMLNeuralDE)(X, ps, st)
     
     prob = ODEProblem{false}(ODEFunction{false}(rhs), x[..,1], (t[1],t[end]), ps)
 
-    m.device(solve(prob, m.alg; saveat=t, m.kwargs...)), st
+    DeviceArray(m.device, solve(prob, m.alg; saveat=t, m.kwargs...)), st
 end
 
 """
