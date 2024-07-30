@@ -36,7 +36,7 @@ end
 function (m::SciMLNeuralDE)(X, ps, st)
     (t, x) = X
     
-    st_model = Lux.Experimental.StatefulLuxLayer(m.model, ps, st)
+    st_model = Lux.StatefulLuxLayer{true}(m.model, ps, st)
     rhs(u, p, t) = st_model(u, p)
 
     if ndims(t)==2 # for batched use with NODEData.jl
@@ -64,7 +64,7 @@ function evolve(model::SciMLNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing}=no
         tspan = (eltype(ic)(0), eltype(ic)(dt*N_t))
     end
 
-    st_model = Lux.Experimental.StatefulLuxLayer(model.model, ps, st)
+    st_model = Lux.StatefulLuxLayer{true}(model.model, ps, st)
     rhs(u, p, t) = st_model(u, p)    
     prob = ODEProblem{false}(ODEFunction{false}(rhs), ic, tspan, ps)
 
@@ -87,7 +87,7 @@ function evolve_sol(model::SciMLNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing
         tspan = (eltype(ic)(0), eltype(ic)(dt*N_t))
     end
 
-    st_model = Lux.Experimental.StatefulLuxLayer(model.model, ps, st)
+    st_model = Lux.StatefulLuxLayer{true}(model.model, ps, st)
     rhs(u, p, t) = st_model(u, p)    
     prob = ODEProblem{false}(ODEFunction{false}(rhs), ic, tspan, ps)
 
