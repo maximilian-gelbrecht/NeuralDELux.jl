@@ -35,6 +35,7 @@ function train!(model, ps, st, loss_func, train_data, opt_state, η_schedule; τ
 
         NN_valid = !(isnothing(valid_data)) ? (length(valid_data) > 100 ? 100 : length(valid_data)) : 0
         lowest_valid_err = compute_initial_error & !(isnothing(valid_data)) ? mean([loss(valid_data[i], model, ps, st)[1] for i=1:NN_valid]) : Inf
+        lowest_additional_metric = Inf 
 
         best_ps = copy(ps)
 
@@ -120,7 +121,21 @@ function train!(model, ps, st, loss_func, train_data, opt_state, η_schedule; τ
                         end
                     end              
                 end
-            else
+            elseif save_mode==:additional_metric 
+                if gf[end] < lowest_additional_metric
+                    lowest_additional_metric = gf[end]
+                    best_ps = deepcopy(ps)
+                    results[:loss_min] .= lowest_additional_metric
+                    results[:i_epoch_min] .= i_epoch
+
+                    if !(isnothing(save_name))
+                        ps_save = adapt(Array, ps) # in case ps is on GPU transfer it to CPU for saving
+                        @save save_name ps_save
+                        if verbose
+                            println("New valid error minimum found, saving the parameters as $save_name now!")
+                        end
+                    end     
+            else 
                 if train_err < lowest_train_err
                     lowest_train_err = train_err 
                     best_ps = deepcopy(ps)
@@ -235,7 +250,7 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
                     println("Additional metric loss = ",gf)
                 end
             end
-
+            
             if train_err < lowest_train_err
                 lowest_train_err = train_err 
                 best_ps = copy(ps)
