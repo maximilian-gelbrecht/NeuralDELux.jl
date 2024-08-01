@@ -135,6 +135,7 @@ function train!(model, ps, st, loss_func, train_data, opt_state, η_schedule; τ
                             println("New valid error minimum found, saving the parameters as $save_name now!")
                         end
                     end     
+                end
             else 
                 if train_err < lowest_train_err
                     lowest_train_err = train_err 
@@ -250,7 +251,7 @@ function train_anode!(model::M, ps, st, loss, train_data, opt_state, η_schedule
                     println("Additional metric loss = ",gf)
                 end
             end
-            
+
             if train_err < lowest_train_err
                 lowest_train_err = train_err 
                 best_ps = copy(ps)
