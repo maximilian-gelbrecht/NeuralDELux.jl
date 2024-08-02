@@ -9,7 +9,7 @@ Trains the `model` with parameters `ps` and state `st` with the `loss` function 
 """
 function train!(model, ps, st, loss_func, train_data, opt_state, η_schedule; τ_range=2:2, N_epochs=1, verbose=true, save_name=nothing, save_results_name=nothing, shuffle_data_order=true, additional_metric=nothing, valid_data=nothing, test_data=nothing, scheduler_offset::Int=0, compute_initial_error::Bool=true, save_mode::Symbol=:valid)
 
-    @assert save_mode in [:valid, :train] "save_mode has to be :valid or :train"
+    @assert save_mode in [:valid, :train, :additional_metric] "save_mode has to be :valid or :train"
 
     if (save_mode == :valid) & isnothing(valid_data) # override save_mode if no valid data is given
         save_mode = :train 
