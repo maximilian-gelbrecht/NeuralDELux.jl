@@ -122,7 +122,7 @@ function train!(model, ps, st, loss_func, train_data, opt_state, η_schedule; τ
                     end              
                 end
             elseif save_mode==:additional_metric 
-                if gf[end] < lowest_additional_metric
+                if gf[:forecast_delta][end] < lowest_additional_metric
                     lowest_additional_metric = gf[end]
                     best_ps = deepcopy(ps)
                     results[:loss_min] .= lowest_additional_metric
@@ -132,7 +132,7 @@ function train!(model, ps, st, loss_func, train_data, opt_state, η_schedule; τ
                         ps_save = adapt(Array, ps) # in case ps is on GPU transfer it to CPU for saving
                         @save save_name ps_save
                         if verbose
-                            println("New valid error minimum found, saving the parameters as $save_name now!")
+                            println("New forecast error minimum found, saving the parameters as $save_name now!")
                         end
                     end     
                 end
