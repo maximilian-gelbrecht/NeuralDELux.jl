@@ -123,7 +123,7 @@ function train!(model, ps, st, loss_func, train_data, opt_state, η_schedule; τ
                 end
             elseif save_mode==:additional_metric 
                 if gf[:forecast_delta][end] < lowest_additional_metric
-                    lowest_additional_metric = gf[end]
+                    lowest_additional_metric = gf[:forecast_delta][end]
                     best_ps = deepcopy(ps)
                     results[:loss_min] .= lowest_additional_metric
                     results[:i_epoch_min] .= i_epoch
