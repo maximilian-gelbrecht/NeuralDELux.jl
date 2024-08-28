@@ -118,6 +118,11 @@ function solve(prob::AbstractDEProblem, solver::SciMLRK4Step; kwargs...)
     @muladd cat(u, u + (dt/6) .* (k₁ + 2 .* (k₂ + k₃) + f(u + dt .* k₃, p, t + dt)), dims=ndims(u)+1)
 end 
 
+"""
+($TYPEDSIGNATURES)
+
+Zygote and GPU compatible fixed step size RK4 solver. Needs to be called similar to the solvers of `OrdinaryDiffEq.jl`. `dt` is a mandatory kwarg, setting the step size.
+"""
 struct MultiStepRK4
 end
 
