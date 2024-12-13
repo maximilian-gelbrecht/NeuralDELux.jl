@@ -1,4 +1,4 @@
-using EllipsisNotation, StatsBase
+using EllipsisNotation, StatsBase, NNlib
 
 abstract type AbstractLossMetric end 
 

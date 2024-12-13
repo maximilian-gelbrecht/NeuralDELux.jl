@@ -1,4 +1,4 @@
-using CUDA, Lux, LuxCUDA, LuxDeviceUtils
+using CUDA, Lux, MLDataDevices
 
 """
     DetermineDevice(; gpu::Union{Nothing, Bool}=nothing)   
@@ -24,6 +24,6 @@ function DetermineDevice(x::AbstractArray)
     end 
 end 
 
-DeviceArray(device::LuxCUDADevice{D}, x) where D = CuArray(x)
-DeviceArray(device::LuxCPUDevice, x) = Array(x)
-DeviceArray(device::LuxDeviceUtils.AbstractLuxDevice, x) = Array(x)
+DeviceArray(device::MLDataDevices.AbstractGPUDevice, x) = CuArray(x)
+DeviceArray(device::MLDataDevices.AbstractCPUDevice, x) = Array(x)
+DeviceArray(device::MLDataDevices.AbstractDevice, x) = Array(x)

@@ -14,7 +14,7 @@ Model for setting up and training Chaotic Neural Differential Equations with Lux
 
 An instance of the model is called with a trajectory pair `(t,x)` in `t` are the timesteps that NDE is integrated for and `x` is a trajectory `N x ... x N_t` in which `x[:, ... , 1]` is taken as the initial condition. 
 """
-struct SciMLNeuralDE{M,A,K,D} <: Lux.AbstractExplicitContainerLayer{(:model,)}
+struct SciMLNeuralDE{M,A,K,D} <: Lux.AbstractLuxWrapperLayer{:model}
     model::M
     alg::A 
     kwargs::K 
@@ -68,7 +68,7 @@ function evolve(model::SciMLNeuralDE, ps, st, ic::A; tspan::Union{T, Nothing}=no
     rhs(u, p, t) = st_model(u, p)    
     prob = ODEProblem{false}(ODEFunction{false}(rhs), ic, tspan, ps)
 
-    return model.device(solve(prob, model.alg; dt=dt, dense=false, save_on=false, save_start=false, save_end=true, model.kwargs..., kwargs...))[..,1]
+    return DeviceArray(model.device, (solve(prob, model.alg; dt=dt, dense=false, save_on=false, save_start=false, save_end=true, model.kwargs..., kwargs...)))[..,1]
 end 
 
 """
@@ -122,7 +122,7 @@ Model for setting up and training Chaotic Neural Differential Equations with Lux
 
 An instance of the model is called with a trajectory pair `(t,x)` in `t` are the timesteps that NDE is integrated for and `x` is a trajectory `N x ... x N_t` in which `x[:, ... , 1]` is taken as the initial condition. 
 """
-@kwdef struct ADNeuralDE{M,A,D,K} <: Lux.AbstractExplicitContainerLayer{(:model,)}
+@kwdef struct ADNeuralDE{M,A,D,K} <: Lux.AbstractLuxWrapperLayer{:model}
     model::M
     alg::A = ADRK4Step()
     dt::D
@@ -191,7 +191,7 @@ end
 
 Construct an augmented NODE that wraps around an exisiting `node_model` with observales with size `size_orig` and adds `size_aug` additional dimensions along dimension `cat_dim`.
 """
-struct AugmentedNeuralDE{M,TA,TO,D,I} <: Lux.AbstractExplicitContainerLayer{(:node,)}
+struct AugmentedNeuralDE{M,TA,TO,D,I} <: Lux.AbstractLuxWrapperLayer{:node}
     node::M
     size_aug::TA
     size_orig::TO
