@@ -25,8 +25,8 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
-[sources.NODEData]
-url = "https://github.com/maximilian-gelbrecht/NODEData.jl"
+[sources]
+NODEData = {url = "https://github.com/maximilian-gelbrecht/NODEData.jl"}
 
 [targets]
 test = ["Test"]
