@@ -29,11 +29,6 @@ jobs:
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - name: instantiate environment
-        run: |
-            julia -e '
-              using Pkg
-              Pkg.develop(PackageSpec(path=pwd()))'
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
